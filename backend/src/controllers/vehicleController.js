@@ -1,4 +1,7 @@
+const mongoose = require("mongoose");
 const Vehicle = require("../models/Vehicle");
+const FuelRecord = require("../models/FuelRecord");
+const Maintenance = require("../models/Maintenance");
 
 const getAllVehicles = async (req, res) => {
     try {
@@ -110,6 +113,10 @@ const updateVehicle = async (req, res) => {
 
 const deleteVehicle = async (req, res) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid vehicle ID" });
+        }
+
         const vehicle = await Vehicle.findById(req.params.id);
 
         if (!vehicle) {
@@ -119,6 +126,33 @@ const deleteVehicle = async (req, res) => {
         if (vehicle.status === "on_mission") {
             return res.status(400).json({
                 message: "Cannot delete a vehicle currently assigned to a mission"
+            });
+        }
+
+        if (vehicle.assignedWorker) {
+            return res.status(400).json({
+                message: "Unassign the worker before deleting this vehicle"
+            });
+        }
+
+        const [fuelRecord, maintenanceRecord] = await Promise.all([
+            FuelRecord.exists({ vehicle: vehicle._id }),
+            Maintenance.exists({ vehicle: vehicle._id })
+        ]);
+
+        if (fuelRecord || maintenanceRecord) {
+            const linkedRecords = [];
+
+            if (fuelRecord) {
+                linkedRecords.push("fuel records");
+            }
+
+            if (maintenanceRecord) {
+                linkedRecords.push("maintenance records");
+            }
+
+            return res.status(400).json({
+                message: `Cannot delete this vehicle because it has linked ${linkedRecords.join(" and ")}`
             });
         }
 
