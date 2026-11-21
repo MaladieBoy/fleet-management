@@ -3,54 +3,206 @@ const Maintenance = require("../models/Maintenance");
 const Vehicle = require("../models/Vehicle");
 
 const addMaintenance = async (req, res) => {
+    let session;
+
     try {
-        const {
-            vehicle,
-            type,
-            description,
-            date,
-            mileage,
-            cost,
-            serviceProvider,
-            status
-        } = req.body;
+        const body = req.body;
 
-        const existingVehicle = await Vehicle.findById(vehicle);
-
-        if (!existingVehicle) {
-            return res.status(404).json({ message: "Vehicle not found" });
-        }
-
-        if (mileage < existingVehicle.mileage) {
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
             return res.status(400).json({
-                message: "Maintenance mileage cannot be lower than vehicle mileage"
+                message: "A valid JSON object is required"
             });
         }
 
-        const maintenance = await Maintenance.create({
-            vehicle,
-            type,
-            description,
-            date,
-            mileage,
-            cost,
-            serviceProvider,
-            status
+        const allowedFields = [
+            "vehicle",
+            "type",
+            "description",
+            "date",
+            "mileage",
+            "cost",
+            "serviceProvider",
+            "status"
+        ];
+
+        const unsupportedFields = Object.keys(body).filter(
+            field => !allowedFields.includes(field)
+        );
+
+        if (unsupportedFields.length > 0) {
+            return res.status(400).json({
+                message: `Unsupported fields: ${unsupportedFields.join(", ")}`
+            });
+        }
+
+        if (!body.vehicle || !mongoose.Types.ObjectId.isValid(body.vehicle)) {
+            return res.status(400).json({
+                message: "A valid vehicle ID is required"
+            });
+        }
+
+        const allowedTypes = [
+            "Oil Change",
+            "Repair",
+            "Inspection",
+            "Tire Replacement",
+            "Other"
+        ];
+
+        if (!allowedTypes.includes(body.type)) {
+            return res.status(400).json({
+                message: "Invalid maintenance type"
+            });
+        }
+
+        if (
+            typeof body.description !== "string" ||
+            !body.description.trim()
+        ) {
+            return res.status(400).json({
+                message: "A maintenance description is required"
+            });
+        }
+
+        if (
+            typeof body.mileage !== "number" ||
+            !Number.isFinite(body.mileage) ||
+            body.mileage < 0
+        ) {
+            return res.status(400).json({
+                message: "Maintenance mileage must be a non-negative number"
+            });
+        }
+
+        if (
+            body.cost !== undefined &&
+            (typeof body.cost !== "number" ||
+                !Number.isFinite(body.cost) ||
+                body.cost < 0)
+        ) {
+            return res.status(400).json({
+                message: "Maintenance cost must be a non-negative number"
+            });
+        }
+
+        if (
+            body.serviceProvider !== undefined &&
+            typeof body.serviceProvider !== "string"
+        ) {
+            return res.status(400).json({
+                message: "Service provider must be a string"
+            });
+        }
+
+        if (body.date !== undefined) {
+            const maintenanceDate = new Date(body.date);
+
+            if (Number.isNaN(maintenanceDate.getTime())) {
+                return res.status(400).json({
+                    message: "Maintenance date must be valid"
+                });
+            }
+        }
+
+        const allowedStatuses = [
+            "scheduled",
+            "in_progress",
+            "completed",
+            "cancelled"
+        ];
+
+        const status = body.status ?? "scheduled";
+
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({
+                message: "Invalid maintenance status"
+            });
+        }
+
+        session = await mongoose.startSession();
+
+        let createdMaintenance;
+
+        await session.withTransaction(async () => {
+            const existingVehicle = await Vehicle.findById(body.vehicle)
+                .session(session);
+
+            if (!existingVehicle) {
+                const error = new Error("Vehicle not found");
+                error.statusCode = 404;
+                throw error;
+            }
+
+            if (body.mileage < existingVehicle.mileage) {
+                const error = new Error(
+                    "Maintenance mileage cannot be lower than vehicle mileage"
+                );
+                error.statusCode = 400;
+                throw error;
+            }
+
+            if (
+                status === "in_progress" &&
+                existingVehicle.status === "on_mission"
+            ) {
+                const error = new Error(
+                    "Cannot start maintenance while the vehicle is on a mission"
+                );
+                error.statusCode = 400;
+                throw error;
+            }
+
+            const [maintenance] = await Maintenance.create([{
+                vehicle: body.vehicle,
+                type: body.type,
+                description: body.description.trim(),
+                date: body.date,
+                mileage: body.mileage,
+                cost: body.cost,
+                serviceProvider: body.serviceProvider?.trim() || "",
+                status
+            }], { session });
+
+            let vehicleChanged = false;
+
+            if (body.mileage > existingVehicle.mileage) {
+                existingVehicle.mileage = body.mileage;
+                vehicleChanged = true;
+            }
+
+            if (
+                status === "in_progress" &&
+                existingVehicle.status !== "under_maintenance"
+            ) {
+                existingVehicle.status = "under_maintenance";
+
+                existingVehicle.statusHistory.push({
+                    status: "under_maintenance",
+                    note: "Maintenance started"
+                });
+
+                vehicleChanged = true;
+            }
+
+            if (vehicleChanged) {
+                await existingVehicle.save({ session });
+            }
+
+            createdMaintenance = maintenance;
         });
 
-        if (status === "in_progress") {
-            existingVehicle.status = "under_maintenance";
-            existingVehicle.statusHistory.push({
-                status: "under_maintenance",
-                note: "Maintenance started"
-            });
-
-            await existingVehicle.save();
-        }
-
-        res.status(201).json(maintenance);
+        res.status(201).json(createdMaintenance);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        const statusCode = error.statusCode ||
+            (error.name === "ValidationError" || error.name === "CastError"
+                ? 400
+                : 500);
+
+        res.status(statusCode).json({ message: error.message });
+    } finally {
+        if (session) {
+            await session.endSession();
+        }
     }
 };
 
@@ -140,6 +292,18 @@ const updateMaintenance = async (req, res) => {
             const maintenanceStatusChanged =
                 fieldsToUpdate.includes("status") &&
                 maintenance.status !== previousMaintenanceStatus;
+
+            if (
+                maintenanceStatusChanged &&
+                maintenance.status === "in_progress" &&
+                vehicle.status === "on_mission"
+            ) {
+                const error = new Error(
+                    "Cannot start maintenance while the vehicle is on a mission"
+                );
+                error.statusCode = 400;
+                throw error;
+            }
 
             if (mileageProvided && maintenance.mileage < vehicle.mileage) {
                 const error = new Error(
