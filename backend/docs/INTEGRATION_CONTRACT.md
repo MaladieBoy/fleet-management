@@ -54,16 +54,60 @@ References:
 References:
 - vehicle -> Vehicle
 
-### User integration
-The User model does not exist in this backend yet.
+### User and employee profiles
 
-Existing references expecting User:
-- Vehicle.assignedWorker
-- FuelRecord.worker
-- Vehicle.statusHistory.changedBy
+The shared User model represents authentication accounts.
 
-The actual User schema, role names, and region/delegation relationship
-must be agreed with the team before implementing assignment and permissions.
+Required account fields from the team proposal:
+- first_name
+- last_name
+- email
+- username
+- password (must store a secure hash, never plaintext)
+- role
+- status
+
+Allowed roles:
+- GD
+- RD
+- WORKER
+
+Employee profiles are separate from authentication accounts.
+
+### Worker profile
+- user_id -> User
+- delegation_id -> Delegation
+- vehicle_id -> Vehicle (proposed; assignment relationship needs one source of truth)
+
+### Regional Director profile
+- user_id -> User
+- delegation_id -> Delegation
+
+### Geographic hierarchy
+
+- Governorate contains multiple Delegations.
+- Each Delegation belongs to one Governorate.
+- Each Delegation has one Regional Director.
+- Each Worker belongs to one Delegation.
+
+### Current backend compatibility
+
+The current backend has a Region model with:
+- name
+- governorate (currently stored as text)
+- address
+
+Vehicle.region references Region.
+
+The team must agree on a migration from Region to Delegation and introduce a Governorate collection. Existing vehicle references and API compatibility must be preserved during that migration.
+
+### Assignment relationship decision
+
+The current Vehicle model contains assignedWorker referencing User.
+
+The proposed Worker profile contains vehicle_id referencing Vehicle.
+
+These represent the same relationship from opposite directions. The team must select one authoritative relationship before implementing assignment. Do not introduce both independently without synchronization rules.
 
 ## 3. Existing API endpoints
 
@@ -122,20 +166,35 @@ Before integration, agree on:
 
 Authentication and authorization are not implemented yet.
 
-Required permissions from the project requirements:
+The shared User account has a role field with these allowed values:
 
-Regional Director:
-- Manage vehicles in their own delegation.
-- Assign and unassign workers.
-- Manage related operational records.
+- GD: General Director
+- RD: Regional Director
+- WORKER: Worker
 
-General Director:
-- Consult fleet-wide information.
-- View reports and download PDFs.
+### General Director (GD)
+- Can consult fleet information across the governorate.
+- Can view workers across the governorate.
+- Can consult statistics and download reports.
 - Cannot create, modify, delete or assign vehicles.
 
-The implementation must use the actual authentication and User schema
-provided by the team.
+### Regional Director (RD)
+- Can manage vehicles belonging to their own delegation.
+- Can assign and unassign workers belonging to their delegation.
+- Can manage operational records belonging to their delegation.
+- Cannot manage another delegation's resources.
+
+### Worker (WORKER)
+- Belongs to one delegation through their Worker profile.
+- Can be assigned to a vehicle.
+- Exact permissions remain to be defined by the team.
+
+### Implementation requirements
+- Authorization must derive the account role from the authenticated User.
+- RD access must be restricted using the authenticated user's delegation.
+- GD access must follow the agreed governorate scope.
+- Never trust a role, user ID or delegation ID supplied directly by the client.
+- Use the actual authentication middleware and User schema provided by the team.
 
 ## 7. Current deletion protection
 
@@ -158,8 +217,31 @@ Mission and Incident document checks remain pending integration.
 
 ## 9. Pending team decisions
 
-- Confirm Region versus Delegation responsibilities.
-- Confirm User schema, roles and delegation relationship.
-- Confirm Mission schema and active status values.
+### Authentication and users
+- Confirm the exact Mongoose User model name and collection name.
+- Confirm whether account fields use snake_case or camelCase.
+- Confirm password hashing and authentication middleware.
+- Confirm the User status values and account activation rules.
+
+### Organization structure
+- Confirm whether the existing Region model will become Delegation.
+- Confirm the Governorate model and its relationship with Delegation.
+- Decide whether GD accounts are linked to one governorate or multiple governorates.
+- Confirm how each Delegation identifies its Regional Director.
+
+### Worker and vehicle assignment
+- Decide whether Worker.vehicle_id or Vehicle.assignedWorker is authoritative.
+- Confirm whether a worker may have more than one assigned vehicle.
+- Confirm whether a vehicle may have more than one assigned worker.
+- Define assignment and unassignment rules.
+
+### Missions and incidents
+- Confirm Mission schema and active mission statuses.
+- Confirm how missions update vehicle status.
 - Confirm Incident schema and vehicle relationship.
-- Agree on authentication middleware and permissions.
+- Define which incidents restrict vehicle usage or deletion.
+
+### Permissions
+- Confirm the exact permissions of WORKER accounts.
+- Confirm GD and RD data visibility boundaries.
+- Agree on shared authorization middleware and resource ownership checks.
