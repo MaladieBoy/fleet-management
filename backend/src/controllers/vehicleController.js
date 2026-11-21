@@ -1,7 +1,5 @@
 const mongoose = require("mongoose");
 const Vehicle = require("../models/Vehicle");
-const FuelRecord = require("../models/FuelRecord");
-const Maintenance = require("../models/Maintenance");
 const Region = require("../models/Region");
 
 const getAllVehicles = async (req, res) => {
@@ -509,27 +507,6 @@ const deleteVehicle = async (req, res) => {
             });
         }
 
-        const [fuelRecord, maintenanceRecord] = await Promise.all([
-            FuelRecord.exists({ vehicle: vehicle._id }),
-            Maintenance.exists({ vehicle: vehicle._id })
-        ]);
-
-        if (fuelRecord || maintenanceRecord) {
-            const linkedRecords = [];
-
-            if (fuelRecord) {
-                linkedRecords.push("fuel records");
-            }
-
-            if (maintenanceRecord) {
-                linkedRecords.push("maintenance records");
-            }
-
-            return res.status(400).json({
-                message: `Cannot delete this vehicle because it has linked ${linkedRecords.join(" and ")}`
-            });
-        }
-
         await vehicle.deleteOne();
 
         res.json({ message: "Vehicle deleted successfully" });
@@ -604,17 +581,6 @@ const changeVehicleStatus = async (req, res) => {
 
         if (vehicle.status === status) {
             return res.json(vehicle);
-        }
-
-        const activeMaintenance = await Maintenance.exists({
-            vehicle: vehicle._id,
-            status: "in_progress"
-        });
-
-        if (activeMaintenance && status !== "under_maintenance") {
-            return res.status(400).json({
-                message: "Cannot change vehicle status while maintenance is in progress"
-            });
         }
 
         vehicle.status = status;
