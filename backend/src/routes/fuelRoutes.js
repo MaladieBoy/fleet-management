@@ -5,12 +5,14 @@ const {
     addFuelRecord,
     getFuelHistory,
     calculateFuelConsumption,
-    getVehicleFuelConsumption
+    getVehicleFuelConsumption,
+    getFuelConsumptionReport
 } = require("../controllers/fuelController");
 
 router.post("/", addFuelRecord);
 router.get("/:vehicleId/consumption", calculateFuelConsumption);
 router.get("/:vehicleId/statistics", getVehicleFuelConsumption);
+router.get("/:vehicleId/report", getFuelConsumptionReport);
 router.get("/:vehicleId", getFuelHistory);
 
 module.exports = router;
