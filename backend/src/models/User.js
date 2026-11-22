@@ -6,6 +6,8 @@ const userRoles = [
     "driver"
 ];
 
+const licenseCategories = ["B", "C", "C+E", "D"];
+
 const userSchema = new mongoose.Schema({
     firstName: {
         type: String,
@@ -25,6 +27,39 @@ const userSchema = new mongoose.Schema({
         trim: true
     },
     phoneNumber: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    cin: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    birthDate: {
+        type: Date,
+        default: null
+    },
+    address: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    licenseCategory: {
+        type: String,
+        enum: [...licenseCategories, ""],
+        default: ""
+    },
+    licenseNumber: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    licenseExpiry: {
+        type: Date,
+        default: null
+    },
+    hub: {
         type: String,
         trim: true,
         default: ""

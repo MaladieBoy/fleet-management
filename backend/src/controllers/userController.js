@@ -1,6 +1,208 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Region = require("../models/Region");
+const Vehicle = require("../models/Vehicle");
+
+const LICENSE_CATEGORIES = User.schema
+    .path("licenseCategory")
+    .enumValues.filter(Boolean);
+
+const DRIVER_PROFILE_FIELDS = [
+    "phoneNumber",
+    "cin",
+    "birthDate",
+    "address",
+    "licenseCategory",
+    "licenseNumber",
+    "licenseExpiry",
+    "hub"
+];
+
+const REQUIRED_DRIVER_FIELDS = [
+    "phoneNumber",
+    "cin",
+    "licenseCategory",
+    "licenseNumber",
+    "licenseExpiry",
+    "hub"
+];
+
+const PHONE_PATTERN = /^\+?[0-9\s().-]{8,20}$/;
+
+function parseDate(value) {
+    if (typeof value !== "string" || !value.trim()) {
+        return null;
+    }
+
+    const date = new Date(value.trim());
+
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseDriverProfile(body, { requireAll }) {
+    const data = {};
+    const has = (field) => body[field] !== undefined;
+
+    if (requireAll) {
+        for (const field of REQUIRED_DRIVER_FIELDS) {
+            if (!has(field)) {
+                return { error: field + " is required" };
+            }
+        }
+    }
+
+    const textFields = [
+        "phoneNumber",
+        "cin",
+        "address",
+        "licenseCategory",
+        "licenseNumber",
+        "hub"
+    ];
+
+    for (const field of textFields) {
+        if (has(field) && typeof body[field] !== "string") {
+            return { error: field + " must be a string" };
+        }
+    }
+
+    if (has("phoneNumber")) {
+        const value = body.phoneNumber.trim();
+
+        if (!PHONE_PATTERN.test(value)) {
+            return { error: "A valid phone number is required" };
+        }
+
+        data.phoneNumber = value;
+    }
+
+    if (has("cin")) {
+        const value = body.cin.trim();
+
+        if (!/^\d{8}$/.test(value)) {
+            return { error: "CIN must contain exactly 8 digits" };
+        }
+
+        data.cin = value;
+    }
+
+    if (has("licenseCategory")) {
+        const value = body.licenseCategory.trim();
+
+        if (!LICENSE_CATEGORIES.includes(value)) {
+            return { error: "Invalid license category" };
+        }
+
+        data.licenseCategory = value;
+    }
+
+    if (has("licenseNumber")) {
+        const value = body.licenseNumber.trim();
+
+        if (value.length < 3 || value.length > 30) {
+            return { error: "License number must be between 3 and 30 characters" };
+        }
+
+        data.licenseNumber = value;
+    }
+
+    if (has("licenseExpiry")) {
+        const date = parseDate(body.licenseExpiry);
+
+        if (!date || date.getFullYear() > 2100) {
+            return { error: "A valid license expiry date is required" };
+        }
+
+        data.licenseExpiry = date;
+    }
+
+    if (has("hub")) {
+        const value = body.hub.trim();
+
+        if (value.length < 2 || value.length > 80) {
+            return { error: "Hub must be between 2 and 80 characters" };
+        }
+
+        data.hub = value;
+    }
+
+    if (has("address")) {
+        const value = body.address.trim();
+
+        if (value.length > 200) {
+            return { error: "Address must be 200 characters or fewer" };
+        }
+
+        data.address = value;
+    }
+
+    if (has("birthDate")) {
+        if (body.birthDate === "" || body.birthDate === null) {
+            data.birthDate = null;
+        } else {
+            const date = parseDate(body.birthDate);
+            const youngest = new Date();
+            youngest.setFullYear(youngest.getFullYear() - 18);
+
+            if (!date || date.getFullYear() < 1900) {
+                return { error: "Birth date is not valid" };
+            }
+
+            if (date > youngest) {
+                return { error: "A driver must be at least 18 years old" };
+            }
+
+            data.birthDate = date;
+        }
+    }
+
+    return { data };
+}
+
+async function findDriverDuplicate(data, excludeId) {
+    const checks = [
+        ["cin", "A driver with this CIN already exists"],
+        ["licenseNumber", "A driver with this license number already exists"]
+    ];
+
+    for (const [field, message] of checks) {
+        if (!data[field]) continue;
+
+        const filter = { role: "driver", [field]: data[field] };
+
+        if (excludeId) {
+            filter._id = { $ne: excludeId };
+        }
+
+        if (await User.exists(filter)) {
+            return message;
+        }
+    }
+
+    return null;
+}
+
+// TODO(missions): once the missions module exists, return true here when the
+// driver has at least one mission, so permanent deletion is refused.
+async function driverHasMissions() {
+    return false;
+}
+
+async function getDriverDeletionBlocker(driverId) {
+    if (await Vehicle.exists({ assignedDriver: driverId })) {
+        return "This driver is assigned to a vehicle. Deactivate the account instead.";
+    }
+
+    if (await Vehicle.exists({ "statusHistory.changedBy": driverId })) {
+        return "This driver appears in vehicle history. Deactivate the account instead.";
+    }
+
+    if (await driverHasMissions(driverId)) {
+        return "This driver has missions. Deactivate the account instead.";
+    }
+
+    return null;
+}
 
 const getUsers = async (req, res) => {
     try {
@@ -82,6 +284,38 @@ const createUser = async (req, res) => {
             });
         }
 
+        let driverProfile = {};
+
+        if (role === "driver") {
+            const parsed = parseDriverProfile(req.body, { requireAll: true });
+
+            if (parsed.error) {
+                return res.status(400).json({
+                    message: parsed.error
+                });
+            }
+
+            driverProfile = parsed.data;
+
+            if (req.body.isActive !== undefined) {
+                if (typeof req.body.isActive !== "boolean") {
+                    return res.status(400).json({
+                        message: "isActive must be a boolean"
+                    });
+                }
+
+                driverProfile.isActive = req.body.isActive;
+            }
+
+            const duplicate = await findDriverDuplicate(driverProfile);
+
+            if (duplicate) {
+                return res.status(409).json({
+                    message: duplicate
+                });
+            }
+        }
+
         const regionExists = await Region.exists({
             _id: regionId
         });
@@ -110,6 +344,7 @@ const createUser = async (req, res) => {
             email: normalizedEmail,
             role,
             region: regionId,
+            ...driverProfile,
             createdBy: req.user._id
         });
 
@@ -162,7 +397,12 @@ const updateUser = async (req, res) => {
             });
         }
 
-        const allowedFields = ["firstName", "lastName", "email"];
+        const allowedFields = [
+            "firstName",
+            "lastName",
+            "email",
+            ...(user.role === "driver" ? DRIVER_PROFILE_FIELDS : [])
+        ];
         const submittedFields = Object.keys(req.body || {});
 
         if (
@@ -170,7 +410,7 @@ const updateUser = async (req, res) => {
             submittedFields.some(field => !allowedFields.includes(field))
         ) {
             return res.status(400).json({
-                message: "Only firstName, lastName, and email can be updated"
+                message: "Only firstName, lastName, email and driver profile fields can be updated"
             });
         }
 
@@ -208,6 +448,26 @@ const updateUser = async (req, res) => {
             }
 
             user.email = email.trim().toLowerCase();
+        }
+
+        if (user.role === "driver") {
+            const parsed = parseDriverProfile(req.body, { requireAll: false });
+
+            if (parsed.error) {
+                return res.status(400).json({
+                    message: parsed.error
+                });
+            }
+
+            const duplicate = await findDriverDuplicate(parsed.data, user._id);
+
+            if (duplicate) {
+                return res.status(409).json({
+                    message: duplicate
+                });
+            }
+
+            Object.assign(user, parsed.data);
         }
 
         await user.save();
@@ -298,9 +558,62 @@ const updateUserStatus = async (req, res) => {
     }
 };
 
+const deleteUser = async (req, res) => {
+    try {
+        if (req.user.role !== "regional_director") {
+            return res.status(403).json({
+                message: "You do not have permission to delete accounts"
+            });
+        }
+
+        if (!req.user.region) {
+            return res.status(403).json({
+                message: "Your account is not assigned to a region"
+            });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(404).json({
+                message: "Account not found"
+            });
+        }
+
+        const driver = await User.findOne({
+            _id: req.params.id,
+            role: "driver",
+            region: req.user.region
+        });
+
+        if (!driver) {
+            return res.status(404).json({
+                message: "Account not found"
+            });
+        }
+
+        const blocker = await getDriverDeletionBlocker(driver._id);
+
+        if (blocker) {
+            return res.status(409).json({
+                message: blocker
+            });
+        }
+
+        await User.deleteOne({ _id: driver._id });
+
+        return res.json({
+            message: "Driver deleted successfully"
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     getUsers,
     createUser,
     updateUser,
-    updateUserStatus
+    updateUserStatus,
+    deleteUser
 };

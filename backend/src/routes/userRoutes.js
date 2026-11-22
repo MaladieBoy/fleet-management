@@ -5,7 +5,8 @@ const {
     getUsers,
     createUser,
     updateUser,
-    updateUserStatus
+    updateUserStatus,
+    deleteUser
 } = require("../controllers/userController");
 
 const {
@@ -34,5 +35,9 @@ router.patch("/:id/status", authorize(
     "general_director",
     "regional_director"
 ), updateUserStatus);
+
+router.delete("/:id", authorize(
+    "regional_director"
+), deleteUser);
 
 module.exports = router;
