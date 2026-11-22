@@ -7,6 +7,7 @@ const connectDB = require("./config/database");
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const regionRoutes = require("./routes/regionRoutes");
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/regions", regionRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/", (req, res) => {
     res.json({
