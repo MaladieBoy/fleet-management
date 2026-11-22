@@ -27,6 +27,7 @@ import {
 import Vehicles from "./pages/Vehicles";
 import Regions from "./pages/Regions";
 import VehicleForm from "./pages/VehicleForm";
+import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import RequireAuth from "./components/RequireAuth";
 import { useAuth } from "./context/AuthContext";
@@ -394,15 +395,7 @@ function AppLayout() {
                                 )
                             }
                         />
-                        <Route
-                            path="/profile"
-                            element={
-                                <PagePlaceholder
-                                    title="Profile"
-                                    description="Informations du compte utilisateur."
-                                />
-                            }
-                        />
+                        <Route path="/profile" element={<Profile />} />
                         <Route
                             path="/settings"
                             element={
