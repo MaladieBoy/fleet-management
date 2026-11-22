@@ -2,33 +2,46 @@ const mongoose = require("mongoose");
 const Vehicle = require("../models/Vehicle");
 const Region = require("../models/Region");
 
+function getVehicleAccessScope(user) {
+    if (user.role === "regional_director") {
+        return { region: user.region };
+    }
+
+    if (user.role === "driver") {
+        return { assignedDriver: user._id };
+    }
+
+    return {};
+}
+
 const getAllVehicles = async (req, res) => {
     try {
-        const filter = {};
+        const filters = [getVehicleAccessScope(req.user)];
 
         if (req.query.status) {
-            filter.status = req.query.status;
+            filters.push({ status: req.query.status });
         }
 
         if (req.query.region) {
-            filter.region = req.query.region;
+            filters.push({ region: req.query.region });
         }
 
         if (req.query.fuelType) {
-            filter.fuelType = req.query.fuelType;
+            filters.push({ fuelType: req.query.fuelType });
         }
 
         if (req.query.search) {
-            filter.$or = [
-                { registrationNumber: { $regex: req.query.search, $options: "i" } },
-                { brand: { $regex: req.query.search, $options: "i" } },
-                { model: { $regex: req.query.search, $options: "i" } }
-            ];
+            filters.push({
+                $or: [
+                    { registrationNumber: { $regex: req.query.search, $options: "i" } },
+                    { brand: { $regex: req.query.search, $options: "i" } },
+                    { model: { $regex: req.query.search, $options: "i" } }
+                ]
+            });
         }
 
-        const vehicles = await Vehicle.find(filter)
-            .populate("region")
-            ;
+        const vehicles = await Vehicle.find({ $and: filters })
+            .populate("region");
 
         res.json(vehicles);
     } catch (error) {
@@ -38,9 +51,10 @@ const getAllVehicles = async (req, res) => {
 
 const getVehicleById = async (req, res) => {
     try {
-        const vehicle = await Vehicle.findById(req.params.id)
-            .populate("region")
-            ;
+        const vehicle = await Vehicle.findOne({
+            _id: req.params.id,
+            ...getVehicleAccessScope(req.user)
+        }).populate("region");
 
         if (!vehicle) {
             return res.status(404).json({ message: "Vehicle not found" });
@@ -134,13 +148,31 @@ const createVehicle = async (req, res) => {
             });
         }
 
-        if (!mongoose.Types.ObjectId.isValid(body.region)) {
+        if (req.user.role === "regional_director") {
+            if (!req.user.region) {
+                return res.status(403).json({
+                    message: "Your account is not assigned to a region"
+                });
+            }
+
+            if (String(body.region) !== String(req.user.region)) {
+                return res.status(403).json({
+                    message: "You can only create vehicles in your assigned region"
+                });
+            }
+        }
+
+        const regionId = req.user.role === "regional_director"
+            ? req.user.region
+            : body.region;
+
+        if (!mongoose.Types.ObjectId.isValid(regionId)) {
             return res.status(400).json({
                 message: "Invalid region ID"
             });
         }
 
-        const regionExists = await Region.exists({ _id: body.region });
+        const regionExists = await Region.exists({ _id: regionId });
 
         if (!regionExists) {
             return res.status(404).json({
@@ -235,7 +267,7 @@ const createVehicle = async (req, res) => {
             fuelTankCapacity,
             mileage,
             currentFuelLevel,
-            region: body.region,
+            region: regionId,
             photo: body.photo?.trim() || "",
             insuranceExpiry: body.insuranceExpiry,
             technicalInspectionExpiry: body.technicalInspectionExpiry,
@@ -312,7 +344,10 @@ const updateVehicle = async (req, res) => {
             });
         }
 
-        const vehicle = await Vehicle.findById(req.params.id);
+        const vehicle = await Vehicle.findOne({
+            _id: req.params.id,
+            ...getVehicleAccessScope(req.user)
+        });
 
         if (!vehicle) {
             return res.status(404).json({ message: "Vehicle not found" });
@@ -384,6 +419,15 @@ const updateVehicle = async (req, res) => {
         }
 
         if (body.region !== undefined) {
+            if (
+                req.user.role === "regional_director" &&
+                String(body.region) !== String(req.user.region)
+            ) {
+                return res.status(403).json({
+                    message: "You cannot move a vehicle outside your assigned region"
+                });
+            }
+
             if (!mongoose.Types.ObjectId.isValid(body.region)) {
                 return res.status(400).json({
                     message: "Invalid region ID"
@@ -489,7 +533,10 @@ const deleteVehicle = async (req, res) => {
             return res.status(400).json({ message: "Invalid vehicle ID" });
         }
 
-        const vehicle = await Vehicle.findById(req.params.id);
+        const vehicle = await Vehicle.findOne({
+            _id: req.params.id,
+            ...getVehicleAccessScope(req.user)
+        });
 
         if (!vehicle) {
             return res.status(404).json({ message: "Vehicle not found" });
@@ -501,9 +548,9 @@ const deleteVehicle = async (req, res) => {
             });
         }
 
-        if (vehicle.assignedWorker) {
+        if (vehicle.assignedDriver) {
             return res.status(400).json({
-                message: "Unassign the worker before deleting this vehicle"
+                message: "Unassign the driver before deleting this vehicle"
             });
         }
 
@@ -517,9 +564,10 @@ const deleteVehicle = async (req, res) => {
 
 const getAvailableVehicles = async (req, res) => {
     try {
-        const vehicles = await Vehicle.find({ status: "available" })
-            .populate("region")
-            ;
+        const vehicles = await Vehicle.find({
+            status: "available",
+            ...getVehicleAccessScope(req.user)
+        }).populate("region");
 
         res.json(vehicles);
     } catch (error) {
@@ -573,7 +621,10 @@ const changeVehicleStatus = async (req, res) => {
             });
         }
 
-        const vehicle = await Vehicle.findById(req.params.id);
+        const vehicle = await Vehicle.findOne({
+            _id: req.params.id,
+            ...getVehicleAccessScope(req.user)
+        });
 
         if (!vehicle) {
             return res.status(404).json({ message: "Vehicle not found" });
@@ -587,7 +638,8 @@ const changeVehicleStatus = async (req, res) => {
 
         vehicle.statusHistory.push({
             status,
-            note: note.trim()
+            note: note.trim(),
+            changedBy: req.user._id
         });
 
         await vehicle.save();
@@ -604,8 +656,10 @@ const changeVehicleStatus = async (req, res) => {
 
 const getVehicleStatusHistory = async (req, res) => {
     try {
-        const vehicle = await Vehicle.findById(req.params.id)
-            .select("registrationNumber status statusHistory");
+        const vehicle = await Vehicle.findOne({
+            _id: req.params.id,
+            ...getVehicleAccessScope(req.user)
+        }).select("registrationNumber status statusHistory");
 
         if (!vehicle) {
             return res.status(404).json({ message: "Vehicle not found" });

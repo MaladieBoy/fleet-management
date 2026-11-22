@@ -12,14 +12,34 @@ const {
     getVehicleStatusHistory
 } = require("../controllers/vehicleController");
 
-router.get("/", getAllVehicles);
-router.get("/available", getAvailableVehicles);
-router.get("/:id/history", getVehicleStatusHistory);
-router.get("/:id", getVehicleById);
+const {
+    protect,
+    authorize
+} = require("../middleware/authMiddleware");
 
-router.post("/", createVehicle);
-router.put("/:id", updateVehicle);
-router.patch("/:id/status", changeVehicleStatus);
-router.delete("/:id", deleteVehicle);
+router.use(protect);
+
+const managementRoles = ["regional_director"];
+
+const viewingRoles = [
+    "general_director",
+    "regional_director",
+    "driver"
+];
+
+const availableViewingRoles = [
+    "general_director",
+    "regional_director"
+];
+
+router.get("/", authorize(...viewingRoles), getAllVehicles);
+router.get("/available", authorize(...availableViewingRoles), getAvailableVehicles);
+router.get("/:id/history", authorize(...viewingRoles), getVehicleStatusHistory);
+router.get("/:id", authorize(...viewingRoles), getVehicleById);
+
+router.post("/", authorize(...managementRoles), createVehicle);
+router.put("/:id", authorize(...managementRoles), updateVehicle);
+router.patch("/:id/status", authorize(...managementRoles), changeVehicleStatus);
+router.delete("/:id", authorize(...managementRoles), deleteVehicle);
 
 module.exports = router;

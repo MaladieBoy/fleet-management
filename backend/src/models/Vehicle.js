@@ -60,7 +60,7 @@ const vehicleSchema = new mongoose.Schema({
         ref: "Region",
         required: true
     },
-    assignedWorker: {
+    assignedDriver: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         default: null

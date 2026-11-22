@@ -3,10 +3,26 @@ const router = express.Router();
 
 const {
     getRegions,
-    createRegion
+    createRegion,
+    updateRegion,
+    deleteRegion
 } = require("../controllers/regionController");
 
-router.get("/", getRegions);
-router.post("/", createRegion);
+const {
+    protect,
+    authorize
+} = require("../middleware/authMiddleware");
+
+router.use(protect);
+
+router.get("/", authorize(
+    "general_director",
+    "regional_director",
+    "driver"
+), getRegions);
+
+router.post("/", authorize("general_director"), createRegion);
+router.put("/:id", authorize("general_director"), updateRegion);
+router.delete("/:id", authorize("general_director"), deleteRegion);
 
 module.exports = router;
