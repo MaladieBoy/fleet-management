@@ -8,6 +8,7 @@ import {
     useNavigate
 } from "react-router-dom";
 import {
+    ClipboardList,
     Truck,
     ContactRound,
     UserRound,
@@ -26,15 +27,48 @@ import {
 import Vehicles from "./pages/Vehicles";
 import Regions from "./pages/Regions";
 import VehicleForm from "./pages/VehicleForm";
+import Login from "./pages/Login";
+import RequireAuth from "./components/RequireAuth";
+import { useAuth } from "./context/AuthContext";
 import "./App.css";
 
 const navigation = [
     { path: "/regions", label: "Region Management", icon: Building2 },
     { path: "/vehicles", label: "Vehicle Management", icon: Truck },
+    { path: "/missions", label: "Missions", icon: ClipboardList },
     { path: "/drivers", label: "Driver Management", icon: ContactRound },
 ];
 
+function getNavigationForRole(role) {
+    const normalizedRole = String(role || "").trim().toLowerCase();
+
+    if (normalizedRole === "driver") {
+        return navigation.filter((item) => item.path === "/missions");
+    }
+
+    return navigation.filter((item) => {
+        if (item.path === "/missions") return false;
+        if (item.path === "/regions") return normalizedRole === "general_director";
+        if (item.path === "/drivers") {
+            return ["general_director", "regional_director"].includes(normalizedRole);
+        }
+        return true;
+    });
+}
+
 function Sidebar({ open, onClose }) {
+    const navigate = useNavigate();
+    const { user, logout } = useAuth();
+
+    async function handleLogout() {
+        try {
+            await logout();
+        } finally {
+            onClose();
+            navigate("/login", { replace: true });
+        }
+    }
+
     return (
         <>
             <div
@@ -43,7 +77,7 @@ function Sidebar({ open, onClose }) {
             />
 
             <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
-                <NavLink to="/vehicles" className="brand" onClick={onClose}>
+                <NavLink to={user?.role === "driver" ? "/missions" : "/vehicles"} className="brand" onClick={onClose}>
                     <div className="brand-icon">
                         <Truck size={23} />
                     </div>
@@ -77,7 +111,7 @@ function Sidebar({ open, onClose }) {
                 </div>
 
                 <nav className="main-navigation">
-                    {navigation.map((item) => {
+                    {getNavigationForRole(user?.role).map((item) => {
                         const Icon = item.icon;
 
                         return (
@@ -123,11 +157,14 @@ function Sidebar({ open, onClose }) {
                         <span>Settings</span>
                     </NavLink>
 
-                    <div className="sidebar-link logout-disabled">
+                    <button
+                        type="button"
+                        className="sidebar-link logout-button"
+                        onClick={handleLogout}
+                    >
                         <LogOut size={17} />
                         <span>Logout</span>
-                        <span className="coming-soon">Soon</span>
-                    </div>
+                    </button>
                 </div>
             </aside>
         </>
@@ -136,9 +173,18 @@ function Sidebar({ open, onClose }) {
 
 function Topbar({ onMenuOpen }) {
     const navigate = useNavigate();
+    const { user, logout } = useAuth();
     const [search, setSearch] = useState("");
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
+
+    async function handleLogout() {
+        try {
+            await logout();
+        } finally {
+            navigate("/login", { replace: true });
+        }
+    }
 
     function handleSearch(event) {
         event.preventDefault();
@@ -238,8 +284,20 @@ function Topbar({ onMenuOpen }) {
 
                     {profileOpen && (
                         <div className="topbar-popover profile-popover">
-                            <strong>Compte régional</strong>
-                            <p>Authentification à intégrer.</p>
+                            <strong>{user?.firstName} {user?.lastName}</strong>
+                            <p>{user?.email}</p>
+                            <span className="profile-role">
+                                {user?.role?.replaceAll("_", " ")}
+                            </span>
+
+                            <button
+                                type="button"
+                                className="profile-logout-button"
+                                onClick={handleLogout}
+                            >
+                                <LogOut size={15} />
+                                Logout
+                            </button>
                         </div>
                     )}
                 </div>
@@ -284,6 +342,7 @@ function PagePlaceholder({ title, description }) {
 
 function AppLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { user } = useAuth();
 
     return (
         <div className="app-shell">
@@ -297,18 +356,42 @@ function AppLayout() {
 
                 <main className="page-content">
                     <Routes>
-                        <Route path="/" element={<Navigate to="/vehicles" replace />} />
-                        <Route path="/vehicles" element={<Vehicles />} />
-                        <Route path="/regions" element={<Regions />} />
-                        <Route path="/vehicles/new" element={<VehicleForm />} />
-                        <Route path="/vehicles/:id/edit" element={<VehicleForm />} />
+                        <Route path="/" element={<Navigate to={user?.role === "driver" ? "/missions" : "/vehicles"} replace />} />
+                        <Route path="/vehicles" element={user?.role === "driver" ? <Navigate to="/missions" replace /> : <Vehicles />} />
+                        <Route
+                            path="/regions"
+                            element={
+                                user?.role === "general_director"
+                                    ? <Regions />
+                                    : <Navigate to="/vehicles" replace />
+                            }
+                        />
+                        <Route path="/vehicles/new" element={user?.role === "driver" ? <Navigate to="/missions" replace /> : <VehicleForm />} />
+                        <Route path="/vehicles/:id/edit" element={user?.role === "driver" ? <Navigate to="/missions" replace /> : <VehicleForm />} />
                         <Route
                             path="/drivers"
                             element={
-                                <PagePlaceholder
-                                    title="Driver Management"
-                                    description="Gestion des chauffeurs et des affectations."
-                                />
+                                ["general_director", "regional_director"].includes(user?.role) ? (
+                                    <PagePlaceholder
+                                        title="Driver Management"
+                                        description="Gestion des chauffeurs et des affectations."
+                                    />
+                                ) : (
+                                    <Navigate to="/vehicles" replace />
+                                )
+                            }
+                        />
+                        <Route
+                            path="/missions"
+                            element={
+                                user?.role === "driver" ? (
+                                    <PagePlaceholder
+                                        title="My Missions"
+                                        description="View your assigned missions. Mission management will be available in a future sprint."
+                                    />
+                                ) : (
+                                    <Navigate to="/vehicles" replace />
+                                )
                             }
                         />
                         <Route
@@ -340,7 +423,13 @@ function AppLayout() {
 function App() {
     return (
         <BrowserRouter>
-            <AppLayout />
+            <Routes>
+                <Route path="/login" element={<Login />} />
+
+                <Route element={<RequireAuth />}>
+                    <Route path="/*" element={<AppLayout />} />
+                </Route>
+            </Routes>
         </BrowserRouter>
     );
 }

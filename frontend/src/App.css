@@ -4963,3 +4963,112 @@
         flex-direction: column;
     }
 }
+
+.auth-loading {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: var(--canvas);
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.auth-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: auth-spin 0.8s linear infinite;
+}
+
+@keyframes auth-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Authentication and account menu */
+
+.logout-button {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    color: #ff9a9a;
+    background: rgba(248, 113, 113, 0.08);
+}
+
+.logout-button:hover svg {
+    color: #ff9a9a;
+}
+
+.logout-button:focus-visible,
+.profile-logout-button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+
+.profile-popover {
+    width: 250px;
+    padding: 17px;
+}
+
+.profile-popover strong {
+    display: block;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.profile-popover p {
+    overflow-wrap: anywhere;
+}
+
+.profile-role {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 5px 9px;
+    color: var(--primary);
+    background: rgba(137, 206, 255, 0.1);
+    border: 1px solid rgba(137, 206, 255, 0.2);
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.profile-logout-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 15px;
+    padding: 12px 0 0;
+    border: none;
+    border-top: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: color 120ms ease;
+}
+
+.profile-logout-button:hover {
+    color: #ff9a9a;
+}
+
+.profile-logout-button svg {
+    flex: 0 0 auto;
+}
