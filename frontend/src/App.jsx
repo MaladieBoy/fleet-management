@@ -28,6 +28,8 @@ import Vehicles from "./pages/Vehicles";
 import Regions from "./pages/Regions";
 import VehicleForm from "./pages/VehicleForm";
 import Profile from "./pages/Profile";
+import Drivers from "./pages/Drivers";
+import DriverForm from "./pages/DriverForm";
 import Login from "./pages/Login";
 import RequireAuth from "./components/RequireAuth";
 import { useAuth } from "./context/AuthContext";
@@ -51,7 +53,7 @@ function getNavigationForRole(role) {
         if (item.path === "/missions") return false;
         if (item.path === "/regions") return normalizedRole === "general_director";
         if (item.path === "/drivers") {
-            return ["general_director", "regional_director"].includes(normalizedRole);
+            return normalizedRole === "regional_director";
         }
         return true;
     });
@@ -372,14 +374,25 @@ function AppLayout() {
                         <Route
                             path="/drivers"
                             element={
-                                ["general_director", "regional_director"].includes(user?.role) ? (
-                                    <PagePlaceholder
-                                        title="Driver Management"
-                                        description="Gestion des chauffeurs et des affectations."
-                                    />
-                                ) : (
-                                    <Navigate to="/vehicles" replace />
-                                )
+                                user?.role === "regional_director"
+                                    ? <Drivers />
+                                    : <Navigate to="/vehicles" replace />
+                            }
+                        />
+                        <Route
+                            path="/drivers/new"
+                            element={
+                                user?.role === "regional_director"
+                                    ? <DriverForm />
+                                    : <Navigate to="/vehicles" replace />
+                            }
+                        />
+                        <Route
+                            path="/drivers/:id/edit"
+                            element={
+                                user?.role === "regional_director"
+                                    ? <DriverForm />
+                                    : <Navigate to="/vehicles" replace />
                             }
                         />
                         <Route
