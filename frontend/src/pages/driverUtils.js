@@ -1,13 +1,13 @@
 export const LICENSE_CATEGORIES = [
-    { value: "B", label: "Permis B (Léger - VL)" },
-    { value: "C", label: "Permis C (Poids Lourd - PL)" },
-    { value: "C+E", label: "Permis C+E (Articulé / Semi-remorque)" },
-    { value: "D", label: "Permis D (Transport en Commun)" }
+    { value: "B", label: "Category B (Light Vehicle)" },
+    { value: "C", label: "Category C (Heavy Goods Vehicle)" },
+    { value: "C+E", label: "Category C+E (Articulated / Semi-trailer)" },
+    { value: "D", label: "Category D (Public Transport)" }
 ];
 
 export const HUB_SUGGESTIONS = [
-    "Radès Hub Principal",
-    "Ben Arous Logistique",
+    "Radès Main Hub",
+    "Ben Arous Logistics",
     "La Goulette Port"
 ];
 
@@ -31,7 +31,7 @@ export function formatDate(value) {
 
     if (Number.isNaN(date.getTime())) return "—";
 
-    return date.toLocaleDateString("fr-FR");
+    return date.toLocaleDateString("en-GB");
 }
 
 export function toDateInput(value) {

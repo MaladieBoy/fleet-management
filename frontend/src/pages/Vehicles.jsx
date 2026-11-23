@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
     Truck,
     CarFront,
@@ -17,13 +17,14 @@ import {
     LoaderCircle
 } from "lucide-react";
 import api from "../services/api";
+import VehicleForm from "./VehicleForm";
 
 const statusLabels = {
-    available: "Disponible au dépôt",
-    on_mission: "En mission",
-    at_parking: "Au parking",
-    under_maintenance: "En maintenance",
-    out_of_service: "Hors service"
+    available: "Available at Depot",
+    on_mission: "On Mission",
+    at_parking: "Parked",
+    under_maintenance: "Under Maintenance",
+    out_of_service: "Out of Service"
 };
 
 function getStatusClass(status) {
@@ -46,9 +47,9 @@ function getVehicleIcon(type) {
 }
 
 function getRegionName(region) {
-    if (!region) return "Non renseigné";
+    if (!region) return "Not provided";
     if (typeof region === "string") return region;
-    return region.name || "Non renseigné";
+    return region.name || "Not provided";
 }
 
 function getRegionId(region) {
@@ -58,7 +59,7 @@ function getRegionId(region) {
 }
 
 function formatMileage(value) {
-    return Number(value || 0).toLocaleString("fr-FR") + " km";
+    return Number(value || 0).toLocaleString("en-GB") + " km";
 }
 
 function VehicleDetails({ vehicle, onClose, onEdit }) {
@@ -88,7 +89,7 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
                 if (active) {
                     setHistoryError(
                         error.response?.data?.message ||
-                        "Impossible de charger l'historique."
+                        "Unable to load vehicle history."
                     );
                 }
             } finally {
@@ -104,13 +105,13 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
     }, [vehicle._id]);
 
     function formatDate(value) {
-        if (!value) return "Date inconnue";
+        if (!value) return "Unknown date";
 
         const date = new Date(value);
 
-        if (Number.isNaN(date.getTime())) return "Date inconnue";
+        if (Number.isNaN(date.getTime())) return "Unknown date";
 
-        return date.toLocaleString("fr-FR", {
+        return date.toLocaleString("en-GB", {
             day: "2-digit",
             month: "short",
             year: "numeric",
@@ -120,9 +121,9 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
     }
 
     function formatExpiry(value) {
-        if (!value) return "Non renseignée";
+        if (!value) return "Not provided";
 
-        return new Date(value).toLocaleDateString("fr-FR");
+        return new Date(value).toLocaleDateString("en-GB");
     }
 
     return (
@@ -133,7 +134,7 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
             >
                 <div className="vehicle-modal-header">
                     <div>
-                        <span className="modal-eyebrow">FICHE VÉHICULE</span>
+                        <span className="modal-eyebrow">VEHICLE DETAILS</span>
                         <h2>{vehicle.registrationNumber}</h2>
                         <span className="modal-subtitle">
                             {vehicle.brand} {vehicle.model}
@@ -144,7 +145,7 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
                         type="button"
                         className="icon-button"
                         onClick={onClose}
-                        aria-label="Fermer"
+                        aria-label="Close"
                     >
                         <X size={19} />
                     </button>
@@ -158,7 +159,7 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
 
                         <div>
                             <strong>{vehicle.brand} {vehicle.model}</strong>
-                            <span>{vehicle.type} · {vehicle.year || "Année inconnue"}</span>
+                            <span>{vehicle.type} · {vehicle.year || "Year not provided"}</span>
                         </div>
 
                         <span className={`status-badge ${getStatusClass(vehicle.status)}`}>
@@ -168,30 +169,30 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
                     </div>
 
                     <div className="vehicle-detail-section">
-                        <h3>Identification & exploitation</h3>
+                        <h3>Identification & Operations</h3>
 
                         <div className="vehicle-detail-grid">
                             <div>
-                                <span>IMMATRICULATION</span>
+                                <span>REGISTRATION NUMBER</span>
                                 <strong className="detail-mono">
                                     {vehicle.registrationNumber}
                                 </strong>
                             </div>
 
                             <div>
-                                <span>RÉGION / DÉPÔT</span>
+                                <span>REGION / DEPOT</span>
                                 <strong>{getRegionName(vehicle.region)}</strong>
                             </div>
 
                             <div>
-                                <span>GOUVERNORAT</span>
+                                <span>LOCATION / CITY</span>
                                 <strong>
-                                    {vehicle.region?.governorate || "Non renseigné"}
+                                    {vehicle.region?.location || "Not provided"}
                                 </strong>
                             </div>
 
                             <div>
-                                <span>STATUT OPÉRATIONNEL</span>
+                                <span>OPERATIONAL STATUS</span>
                                 <strong>
                                     {statusLabels[vehicle.status] || vehicle.status}
                                 </strong>
@@ -200,40 +201,40 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
                     </div>
 
                     <div className="vehicle-detail-section">
-                        <h3>Données techniques</h3>
+                        <h3>Technical Data</h3>
 
                         <div className="vehicle-detail-grid">
                             <div>
-                                <span>CARBURANT</span>
+                                <span>FUEL TYPE</span>
                                 <strong>{vehicle.fuelType || "—"}</strong>
                             </div>
 
                             <div>
-                                <span>KILOMÉTRAGE</span>
+                                <span>MILEAGE</span>
                                 <strong className="detail-mono">
                                     {formatMileage(vehicle.mileage)}
                                 </strong>
                             </div>
 
                             <div>
-                                <span>CAPACITÉ DU RÉSERVOIR</span>
+                                <span>FUEL TANK CAPACITY</span>
                                 <strong>{vehicle.fuelTankCapacity ?? 0} L</strong>
                             </div>
 
                             <div>
-                                <span>NIVEAU DE CARBURANT</span>
+                                <span>NIVEAU DE FUEL TYPE</span>
                                 <strong>
                                     {vehicle.currentFuelLevel ?? 0} L
                                 </strong>
                             </div>
 
                             <div>
-                                <span>ASSURANCE</span>
+                                <span>INSURANCE</span>
                                 <strong>{formatExpiry(vehicle.insuranceExpiry)}</strong>
                             </div>
 
                             <div>
-                                <span>VISITE TECHNIQUE</span>
+                                <span>TECHNICAL INSPECTION</span>
                                 <strong>
                                     {formatExpiry(vehicle.technicalInspectionExpiry)}
                                 </strong>
@@ -243,14 +244,14 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
 
                     <div className="vehicle-detail-section history-section">
                         <div className="history-heading">
-                            <h3>Historique des statuts</h3>
-                            <span>{history.length} événement(s)</span>
+                            <h3>Status History</h3>
+                            <span>{history.length} event(s)</span>
                         </div>
 
                         {historyLoading && (
                             <div className="history-message">
                                 <LoaderCircle size={17} className="loading-spinner" />
-                                Chargement de l'historique...
+                                Loading history...
                             </div>
                         )}
 
@@ -262,7 +263,7 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
 
                         {!historyLoading && !historyError && history.length === 0 && (
                             <div className="history-message">
-                                Aucun changement de statut enregistré.
+                                No status changes recorded.
                             </div>
                         )}
 
@@ -283,7 +284,7 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
                                             </div>
 
                                             <p>
-                                                {entry.note || "Aucune note"}
+                                                {entry.note || "No note"}
                                             </p>
                                         </div>
                                     </div>
@@ -299,7 +300,7 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
                         className="button-secondary"
                         onClick={onClose}
                     >
-                        Fermer
+                        Close
                     </button>
 
                     <button
@@ -308,7 +309,7 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
                         onClick={onEdit}
                     >
                         <Pencil size={15} />
-                        Modifier le véhicule
+                        Edit Vehicle
                     </button>
                 </div>
             </div>
@@ -316,7 +317,6 @@ function VehicleDetails({ vehicle, onClose, onEdit }) {
     );
 }
 function Vehicles() {
-    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [vehicles, setVehicles] = useState([]);
@@ -328,6 +328,8 @@ function Vehicles() {
     const [fuelFilter, setFuelFilter] = useState("");
     const [regionFilter, setRegionFilter] = useState("");
     const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [formOpen, setFormOpen] = useState(false);
+    const [editingVehicleId, setEditingVehicleId] = useState(null);
 
     async function loadVehicles() {
         try {
@@ -339,7 +341,7 @@ function Vehicles() {
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                "Impossible de charger les véhicules. Vérifiez la connexion au serveur."
+                "Unable to load vehicles. Check your server connection."
             );
         } finally {
             setLoading(false);
@@ -436,32 +438,49 @@ function Vehicles() {
     }
 
     function handleEdit(vehicle) {
-        navigate(`/vehicles/${vehicle._id}/edit`);
+        setSelectedVehicle(null);
+        setEditingVehicleId(vehicle._id);
+        setFormOpen(true);
+    }
+
+    function openCreateForm() {
+        setEditingVehicleId(null);
+        setFormOpen(true);
+    }
+
+    function closeForm() {
+        setFormOpen(false);
+        setEditingVehicleId(null);
+    }
+
+    function handleFormSaved() {
+        closeForm();
+        loadVehicles();
     }
 
     return (
         <section className="page-view">
             <div className="page-breadcrumb">
-                <span>Fleet & Parc</span>
+                <span>Fleet & Operations</span>
                 <span>/</span>
-                <span>Gestion du parc roulant</span>
+                <span>Fleet Management</span>
                 <span>/</span>
-                <span className="breadcrumb-current">Véhicules</span>
+                <span className="breadcrumb-current">Vehicles</span>
             </div>
 
             <div className="page-heading page-heading-actions">
                 <div>
                     <div className="page-eyebrow">
                         <span className="eyebrow-dot" />
-                        NŒUD RÉGIONAL TN-01
+                        REGIONAL NODE TN-01
                         <span className="eyebrow-separator">/</span>
-                        GESTION DU PARC ROULANT
+                        FLEET MANAGEMENT
                     </div>
 
-                    <h1>Gestion des Véhicules</h1>
+                    <h1>Vehicle Management</h1>
 
                     <p>
-                        Suivi en temps réel et état opérationnel de la flotte.
+                        Real-time fleet monitoring and operational status.
                     </p>
                 </div>
 
@@ -472,16 +491,16 @@ function Vehicles() {
                         onClick={() => window.print()}
                     >
                         <Download size={16} />
-                        Exporter
+                        Export
                     </button>
 
                     <button
                         type="button"
                         className="button-primary"
-                        onClick={() => navigate("/vehicles/new")}
+                        onClick={openCreateForm}
                     >
                         <Plus size={17} />
-                        Nouveau Véhicule
+                        Add Vehicle
                     </button>
                 </div>
             </div>
@@ -489,51 +508,51 @@ function Vehicles() {
             <div className="vehicle-kpi-grid">
                 <div className="vehicle-kpi-card">
                     <div className="vehicle-kpi-top">
-                        <span>TOTAL PARC ROULANT</span>
+                        <span>TOTAL FLEET</span>
                         <div className="kpi-icon blue">
                             <Truck size={19} />
                         </div>
                     </div>
                     <div className="vehicle-kpi-value">
-                        {loading ? "—" : vehicles.length}
-                        <span>véhicules enregistrés</span>
+                        <strong>{loading ? "—" : vehicles.length}</strong>
+                        <span>registered vehicles</span>
                     </div>
                     <div className="vehicle-kpi-footer">
                         <span className="kpi-dot green-dot" />
-                        Registre du parc
+                        Fleet Register
                     </div>
                 </div>
 
                 <div className="vehicle-kpi-card">
                     <div className="vehicle-kpi-top">
-                        <span>ACTUELLEMENT EN MISSION</span>
+                        <span>CURRENTLY ON MISSION</span>
                         <div className="kpi-icon cyan">
                             <Truck size={19} />
                         </div>
                     </div>
                     <div className="vehicle-kpi-value cyan-text">
-                        {loading ? "—" : missionCount}
-                        <span>véhicules en mission</span>
+                        <strong>{loading ? "—" : missionCount}</strong>
+                        <span>vehicles on mission</span>
                     </div>
                     <div className="vehicle-kpi-footer">
-                        Statut opérationnel
+                        Operational Status
                     </div>
                 </div>
 
                 <div className="vehicle-kpi-card">
                     <div className="vehicle-kpi-top">
-                        <span>DISPONIBILITÉ & MAINTENANCE</span>
+                        <span>AVAILABILITY & MAINTENANCE</span>
                         <div className="kpi-icon green">
                             <Gauge size={19} />
                         </div>
                     </div>
                     <div className="vehicle-kpi-value green-text">
-                        {loading ? "—" : availableCount}
-                        <span>véhicules disponibles</span>
+                        <strong>{loading ? "—" : availableCount}</strong>
+                        <span>available vehicles</span>
                     </div>
                     <div className="vehicle-kpi-footer">
                         <span className="maintenance-count">
-                            {maintenanceCount} en atelier
+                            {maintenanceCount} in maintenance
                         </span>
                     </div>
                 </div>
@@ -544,7 +563,7 @@ function Vehicles() {
                     <Search size={17} />
                     <input
                         type="search"
-                        placeholder="Rechercher par matricule, marque ou modèle..."
+                        placeholder="Search by registration number, make, or model..."
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                     />
@@ -556,7 +575,7 @@ function Vehicles() {
                         value={typeFilter}
                         onChange={(event) => setTypeFilter(event.target.value)}
                     >
-                        <option value="">Tous types de véhicules</option>
+                        <option value="">All Vehicle Types</option>
                         {types.map((type) => (
                             <option key={type} value={type}>{type}</option>
                         ))}
@@ -569,7 +588,7 @@ function Vehicles() {
                         value={statusFilter}
                         onChange={(event) => setStatusFilter(event.target.value)}
                     >
-                        <option value="">Tous statuts</option>
+                        <option value="">All Statuses</option>
                         {Object.entries(statusLabels).map(([value, label]) => (
                             <option key={value} value={value}>{label}</option>
                         ))}
@@ -582,10 +601,10 @@ function Vehicles() {
                         value={fuelFilter}
                         onChange={(event) => setFuelFilter(event.target.value)}
                     >
-                        <option value="">Tous carburants</option>
+                        <option value="">All Fuel Types</option>
                         <option value="Diesel">Diesel</option>
-                        <option value="Petrol">Essence</option>
-                        <option value="Electric">Électrique</option>
+                        <option value="Petrol">Petrol</option>
+                        <option value="Electric">Electric</option>
                     </select>
                 </label>
 
@@ -594,7 +613,7 @@ function Vehicles() {
                         value={regionFilter}
                         onChange={(event) => setRegionFilter(event.target.value)}
                     >
-                        <option value="">Toutes régions</option>
+                        <option value="">All Regions</option>
                         {regions.map((region) => (
                             <option key={region.id} value={region.id}>
                                 {region.name}
@@ -607,8 +626,8 @@ function Vehicles() {
                     type="button"
                     className="filter-reset-button"
                     onClick={resetFilters}
-                    title="Réinitialiser les filtres"
-                    aria-label="Réinitialiser les filtres"
+                    title="Reset Filters"
+                    aria-label="Reset Filters"
                 >
                     <RefreshCw size={16} />
                 </button>
@@ -618,7 +637,7 @@ function Vehicles() {
                 <div className="vehicle-error">
                     <span>{error}</span>
                     <button type="button" onClick={loadVehicles}>
-                        Réessayer
+                        Retry
                     </button>
                 </div>
             )}
@@ -626,15 +645,15 @@ function Vehicles() {
             <div className="vehicle-table-panel">
                 <div className="vehicle-table-heading">
                     <div>
-                        <h2>Inventaire Flotte Active</h2>
+                        <h2>Active Fleet Inventory</h2>
                         <span className="vehicle-result-count">
-                            Affichage {filteredVehicles.length} sur {vehicles.length}
+                            Showing {filteredVehicles.length} of {vehicles.length}
                         </span>
                     </div>
 
                     <div className="table-live-status">
                         <span className="online-dot" />
-                        Registre Flotte à Jour
+                        Fleet Register Up to Date
                     </div>
                 </div>
 
@@ -642,11 +661,11 @@ function Vehicles() {
                     <table className="vehicle-table">
                         <thead>
                             <tr>
-                                <th>VÉHICULE & MATRICULE</th>
-                                <th>TYPE & MODÈLE</th>
-                                <th>RÉGION / DÉPÔT</th>
-                                <th>DONNÉES TECHNIQUES</th>
-                                <th>STATUT OPÉRATIONNEL</th>
+                                <th>VEHICLE & REGISTRATION</th>
+                                <th>TYPE & MODEL</th>
+                                <th>REGION / DEPOT</th>
+                                <th>TECHNICAL DATA</th>
+                                <th>OPERATIONAL STATUS</th>
                                 <th>ACTIONS</th>
                             </tr>
                         </thead>
@@ -656,7 +675,7 @@ function Vehicles() {
                                 <tr>
                                     <td colSpan="6" className="table-message">
                                         <LoaderCircle size={22} className="loading-spinner" />
-                                        Chargement du parc automobile...
+                                        Loading fleet vehicles...
                                     </td>
                                 </tr>
                             )}
@@ -664,7 +683,7 @@ function Vehicles() {
                             {!loading && !error && filteredVehicles.length === 0 && (
                                 <tr>
                                     <td colSpan="6" className="table-message">
-                                        Aucun véhicule ne correspond aux filtres.
+                                        No vehicles match the selected filters.
                                     </td>
                                 </tr>
                             )}
@@ -684,7 +703,7 @@ function Vehicles() {
                                                         {vehicle.registrationNumber}
                                                     </strong>
                                                     <span className="vehicle-reference">
-                                                        {vehicle.year || "Année non renseignée"}
+                                                        {vehicle.year || "Year not provided"}
                                                     </span>
                                                 </div>
                                             </div>
@@ -702,8 +721,8 @@ function Vehicles() {
                                                 <strong>{getRegionName(vehicle.region)}</strong>
                                                 <span>
                                                     {typeof vehicle.region === "object"
-                                                        ? vehicle.region?.governorate || "Région"
-                                                        : "Région"}
+                                                        ? vehicle.region?.location || "Region"
+                                                        : "Region"}
                                                 </span>
                                             </div>
                                         </td>
@@ -733,8 +752,8 @@ function Vehicles() {
                                                 <button
                                                     type="button"
                                                     className="table-action"
-                                                    title="Voir les détails"
-                                                    aria-label="Voir les détails"
+                                                    title="View Details"
+                                                    aria-label="View Details"
                                                     onClick={() => setSelectedVehicle(vehicle)}
                                                 >
                                                     <Eye size={17} />
@@ -743,8 +762,8 @@ function Vehicles() {
                                                 <button
                                                     type="button"
                                                     className="table-action"
-                                                    title="Modifier le véhicule"
-                                                    aria-label="Modifier le véhicule"
+                                                    title="Edit Vehicle"
+                                                    aria-label="Edit Vehicle"
                                                     onClick={() => handleEdit(vehicle)}
                                                 >
                                                     <Pencil size={16} />
@@ -759,7 +778,7 @@ function Vehicles() {
                 </div>
 
                 <div className="vehicle-table-footer">
-                    <span>{filteredVehicles.length} véhicule(s) affiché(s)</span>
+                    <span>{filteredVehicles.length} vehicle(s) displayed</span>
                     <button
                         type="button"
                         className="refresh-table-button"
@@ -767,7 +786,7 @@ function Vehicles() {
                         disabled={loading}
                     >
                         <RefreshCw size={14} />
-                        Actualiser
+                        Refresh
                     </button>
                 </div>
             </div>
@@ -778,6 +797,21 @@ function Vehicles() {
                     onClose={() => setSelectedVehicle(null)}
                     onEdit={() => handleEdit(selectedVehicle)}
                 />
+            )}
+
+            {formOpen && (
+                <div className="vehicle-modal-overlay" onMouseDown={closeForm}>
+                    <div
+                        className="vehicle-modal vehicle-form-dialog"
+                        onMouseDown={(event) => event.stopPropagation()}
+                    >
+                        <VehicleForm
+                            vehicleId={editingVehicleId}
+                            onClose={closeForm}
+                            onSaved={handleFormSaved}
+                        />
+                    </div>
+                </div>
             )}
         </section>
     );

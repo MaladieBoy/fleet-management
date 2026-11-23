@@ -14,7 +14,6 @@ import {
     UserRound,
     Settings,
     LogOut,
-    Search,
     Moon,
     Bell,
     Menu,
@@ -53,7 +52,8 @@ function getNavigationForRole(role) {
         if (item.path === "/missions") return false;
         if (item.path === "/regions") return normalizedRole === "general_director";
         if (item.path === "/drivers") {
-            return normalizedRole === "regional_director";
+            return normalizedRole === "regional_director" ||
+                normalizedRole === "general_director";
         }
         return true;
     });
@@ -177,7 +177,6 @@ function Sidebar({ open, onClose }) {
 function Topbar({ onMenuOpen }) {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
-    const [search, setSearch] = useState("");
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
 
@@ -189,17 +188,6 @@ function Topbar({ onMenuOpen }) {
         }
     }
 
-    function handleSearch(event) {
-        event.preventDefault();
-
-        const value = search.trim();
-
-        if (value) {
-            navigate(`/vehicles?search=${encodeURIComponent(value)}`);
-        } else {
-            navigate("/vehicles");
-        }
-    }
 
     return (
         <header className="topbar">
@@ -226,19 +214,9 @@ function Topbar({ onMenuOpen }) {
             <div className="topbar-right">
                 <div className="region-indicator">
                     <span className="online-dot" />
-                    <span>Nœud Régional : Radès Hub</span>
+                    <span>Regional Node: Radès Hub</span>
                 </div>
 
-                <form className="global-search" onSubmit={handleSearch}>
-                    <Search size={16} />
-                    <input
-                        type="search"
-                        placeholder="Rechercher matricule, chauffeur..."
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                    />
-                    <kbd>⌘K</kbd>
-                </form>
 
                 <div className="connection-indicator" title="API connection status">
                     <span className="online-dot" />
@@ -267,7 +245,7 @@ function Topbar({ onMenuOpen }) {
                     {notificationsOpen && (
                         <div className="topbar-popover">
                             <strong>Notifications</strong>
-                            <p>Aucune nouvelle notification.</p>
+                            <p>No new notifications.</p>
                         </div>
                     )}
                 </div>
@@ -313,7 +291,7 @@ function PagePlaceholder({ title, description }) {
     return (
         <section className="page-view">
             <div className="page-breadcrumb">
-                <span>Fleet & Parc</span>
+                <span>Fleet & Operations</span>
                 <ChevronRight size={14} />
                 <span className="breadcrumb-current">{title}</span>
             </div>
@@ -333,10 +311,10 @@ function PagePlaceholder({ title, description }) {
                 <div className="placeholder-icon">
                     <Building2 size={25} />
                 </div>
-                <h2>Module en préparation</h2>
+                <h2>Module Coming Soon</h2>
                 <p>
-                    Cette interface sera connectée à son API lorsque le module
-                    correspondant sera disponible.
+                    This interface will be connected to its API when the module
+                    becomes available.
                 </p>
             </div>
         </section>
@@ -374,7 +352,7 @@ function AppLayout() {
                         <Route
                             path="/drivers"
                             element={
-                                user?.role === "regional_director"
+                                ["regional_director", "general_director"].includes(user?.role)
                                     ? <Drivers />
                                     : <Navigate to="/vehicles" replace />
                             }

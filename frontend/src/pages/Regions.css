@@ -1,0 +1,567 @@
+/* Region Management */
+
+.regions-page {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.regions-page .page-heading {
+    margin-bottom: 0;
+}
+
+.region-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.region-kpi-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-width: 0;
+    padding: 20px;
+    background: #111d34;
+    border: 1px solid #24334d;
+    border-radius: 12px;
+}
+
+.region-kpi-card > div {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.region-kpi-label {
+    color: #8999b5;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+}
+
+.region-kpi-card strong {
+    color: #edf3ff;
+    font-size: 27px;
+    line-height: 1.2;
+}
+
+.region-kpi-card small {
+    color: #8293b0;
+    font-size: 11px;
+}
+
+.region-kpi-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 43px;
+    height: 43px;
+    flex-shrink: 0;
+    border-radius: 11px;
+}
+
+.region-kpi-icon.blue {
+    color: #7db8ff;
+    background: #1b3150;
+}
+
+.region-kpi-icon.cyan {
+    color: #4cd7f6;
+    background: #123746;
+}
+
+.region-kpi-icon.green {
+    color: #4edea3;
+    background: #153a35;
+}
+
+.region-list-panel {
+    padding: 22px;
+}
+
+.region-table-heading {
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.region-list-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.region-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: min(390px, 100%);
+    min-width: 260px;
+    padding: 0 13px;
+    color: #8293b0;
+    background: #0b162b;
+    border: 1px solid #2a3b58;
+    border-radius: 8px;
+}
+
+.region-search:focus-within {
+    border-color: #5798e8;
+}
+
+.region-search input {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 0;
+    color: #e8efff;
+    background: transparent;
+    border: 0;
+    outline: none;
+    font: inherit;
+    font-size: 12px;
+}
+
+.region-search input::placeholder {
+    color: #657692;
+}
+
+.region-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.region-management-table {
+    min-width: 850px;
+}
+
+.region-management-table th {
+    padding: 14px 12px;
+    background: #0d192e;
+}
+
+.region-management-table td {
+    padding: 14px 12px;
+    vertical-align: middle;
+}
+
+.region-management-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.region-management-table tbody tr:hover {
+    background: rgba(72, 112, 166, 0.08);
+}
+
+.region-management-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.region-depot-cell,
+.region-director-cell {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 130px;
+}
+
+.region-depot-cell svg {
+    flex-shrink: 0;
+    color: #8293b0;
+}
+
+.region-depot-cell span {
+    overflow-wrap: anywhere;
+}
+
+.region-director-cell {
+    color: #d4def0;
+    white-space: nowrap;
+}
+
+.region-director-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 29px;
+    height: 29px;
+    flex-shrink: 0;
+    color: #9ed5ff;
+    background: #1b3150;
+    border: 1px solid #29486d;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.region-muted {
+    color: #71819b;
+    font-size: 11px;
+}
+
+.region-number-cell {
+    text-align: center !important;
+}
+
+.region-vehicle-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 29px;
+    height: 27px;
+    padding: 0 8px;
+    color: #8fd8f4;
+    background: #153447;
+    border-radius: 7px;
+    font-size: 12px;
+}
+
+.region-actions-cell {
+    text-align: center !important;
+}
+
+.region-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+
+.region-actions .table-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 31px;
+    height: 31px;
+    color: #91bce9;
+    background: #1b3150;
+    border: 1px solid #29486d;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: 0.15s ease;
+}
+
+.region-actions .table-action:hover {
+    color: #ffffff;
+    background: #28517d;
+}
+
+.region-actions .region-delete-action {
+    color: #ff9292;
+    background: #3a222d;
+    border-color: #59303c;
+}
+
+.region-actions .region-delete-action:hover {
+    color: #ffffff;
+    background: #8b3545;
+}
+
+.region-table-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 15px;
+    padding-top: 15px;
+    color: #8293b0;
+    border-top: 1px solid #293953;
+    font-size: 11px;
+}
+
+.refresh-table-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    color: #91bce9;
+    background: transparent;
+    border: 1px solid #29486d;
+    border-radius: 7px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.refresh-table-button:hover {
+    background: #1b3150;
+}
+
+.refresh-table-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Region form modal */
+
+.region-modal-overlay {
+    z-index: 1000;
+}
+
+.region-form-modal {
+    width: min(620px, calc(100vw - 32px));
+    max-height: min(85vh, 760px);
+    overflow-y: auto;
+}
+
+.region-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.region-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.region-form-section-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+}
+
+.region-form-section-heading > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    color: #89ceff;
+    background: #1b3150;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.region-form-section-heading h3 {
+    margin: 0 0 5px;
+    color: #e8efff;
+    font-size: 14px;
+}
+
+.region-form-section-heading p {
+    margin: 0;
+    color: #8999b5;
+    font-size: 11px;
+}
+
+.region-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.region-form-grid .form-field {
+    min-width: 0;
+}
+
+.region-form-grid .region-full-field {
+    grid-column: 1 / -1;
+}
+
+.region-form-grid .form-field small {
+    color: #8293b0;
+    font-size: 10px;
+}
+
+.region-delete-modal {
+    width: min(430px, calc(100vw - 32px));
+    padding: 25px;
+}
+
+.region-delete-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    color: #ff9292;
+    background: #3a222d;
+    border-radius: 12px;
+}
+
+.region-delete-modal h2 {
+    margin: 0 0 9px;
+    color: #edf3ff;
+    font-size: 19px;
+}
+
+.region-delete-modal > p {
+    margin: 0 0 18px;
+    color: #a2b0c8;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.region-delete-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 17px;
+    padding: 13px;
+    background: #0b162b;
+    border: 1px solid #293953;
+    border-radius: 8px;
+}
+
+.region-delete-summary span {
+    color: #8293b0;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+}
+
+.region-delete-summary strong {
+    color: #edf3ff;
+    font-size: 13px;
+}
+
+.region-delete-summary small {
+    color: #8999b5;
+    font-size: 11px;
+}
+
+@media (max-width: 900px) {
+    .region-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .region-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .region-table-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .region-search {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .region-list-panel {
+        padding: 15px;
+    }
+
+    .region-table-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .region-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .region-form-grid .region-full-field {
+        grid-column: auto;
+    }
+}
+
+/* Region ID, status, date, and read-only record metadata */
+.region-management-table {
+    min-width: 1180px;
+}
+
+.region-id-cell {
+    color: #89ceff;
+    font-family: monospace;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.region-date-cell {
+    color: #aab5c9;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.region-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 76px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.region-status-badge.active {
+    color: #4edea3;
+    background: rgba(78, 222, 163, 0.12);
+    border: 1px solid rgba(78, 222, 163, 0.22);
+}
+
+.region-status-badge.inactive {
+    color: #ffb86b;
+    background: rgba(255, 184, 107, 0.12);
+    border: 1px solid rgba(255, 184, 107, 0.22);
+}
+
+.region-form-grid select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    color: #e8eefb;
+    background: #131b2e;
+    border: 1px solid rgba(137, 206, 255, 0.18);
+    border-radius: 8px;
+    outline: none;
+}
+
+.region-form-grid select:focus {
+    border-color: #89ceff;
+}
+
+.region-form-record-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.region-form-record-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+    padding: 12px;
+    background: rgba(137, 206, 255, 0.045);
+    border: 1px solid rgba(137, 206, 255, 0.12);
+    border-radius: 9px;
+}
+
+.region-form-record-grid span {
+    color: #8492aa;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+.region-form-record-grid strong {
+    overflow-wrap: anywhere;
+    color: #e8eefb;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.region-form-note {
+    margin: 12px 0 0;
+    color: #8492aa;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+    .region-form-record-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -79,7 +79,7 @@ const userSchema = new mongoose.Schema({
         ref: "Region",
         default: null,
         required: function () {
-            return this.role !== "general_director";
+            return this.role === "driver";
         }
     },
     isActive: {

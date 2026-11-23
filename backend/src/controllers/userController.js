@@ -227,7 +227,7 @@ const getUsers = async (req, res) => {
 
         const users = await User.find(filter)
             .select("-googleId")
-            .populate("region", "name governorate")
+            .populate("region", "name location regionId status address createdAt")
             .sort({ createdAt: -1 });
 
         return res.json(users);
@@ -350,7 +350,7 @@ const createUser = async (req, res) => {
 
         const createdUser = await User.findById(user._id)
             .select("-googleId")
-            .populate("region", "name governorate");
+            .populate("region", "name location regionId status address createdAt");
 
         return res.status(201).json(createdUser);
     } catch (error) {
@@ -474,7 +474,7 @@ const updateUser = async (req, res) => {
 
         const updatedUser = await User.findById(user._id)
             .select("-googleId")
-            .populate("region", "name governorate");
+            .populate("region", "name location regionId status address createdAt");
 
         return res.json(updatedUser);
     } catch (error) {
@@ -539,7 +539,7 @@ const updateUserStatus = async (req, res) => {
             { new: true, runValidators: true }
         )
             .select("-googleId")
-            .populate("region", "name governorate");
+            .populate("region", "name location regionId status address createdAt");
 
         if (!user) {
             return res.status(404).json({

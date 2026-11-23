@@ -28,7 +28,7 @@ function ModalShell({ eyebrow, title, titleId, saving, onClose, footer, children
                         className="icon-button"
                         onClick={onClose}
                         disabled={saving}
-                        aria-label="Fermer"
+                        aria-label="Close"
                     >
                         <X size={19} />
                     </button>
@@ -51,7 +51,7 @@ function ModalError({ message, onClose }) {
             <button
                 type="button"
                 onClick={onClose}
-                aria-label="Fermer le message"
+                aria-label="Close message"
             >
                 ×
             </button>
@@ -76,13 +76,13 @@ export function StatusConfirmModal({ driver, onClose, onConfirmed }) {
 
             onConfirmed(
                 activating
-                    ? "Chauffeur activé avec succès."
-                    : "Chauffeur désactivé avec succès."
+                    ? "Driver activated successfully."
+                    : "Driver deactivated successfully."
             );
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                "Impossible de modifier le statut. Vérifiez la connexion au serveur."
+                "Unable to update the account status. Check your server connection."
             );
             setSaving(false);
         }
@@ -91,7 +91,7 @@ export function StatusConfirmModal({ driver, onClose, onConfirmed }) {
     return (
         <ModalShell
             eyebrow="CONFIRMATION"
-            title={activating ? "Activer le chauffeur" : "Désactiver le chauffeur"}
+            title={activating ? "Activate Driver" : "Deactivate Driver"}
             titleId="driver-status-title"
             saving={saving}
             onClose={onClose}
@@ -103,7 +103,7 @@ export function StatusConfirmModal({ driver, onClose, onConfirmed }) {
                         onClick={onClose}
                         disabled={saving}
                     >
-                        Annuler
+                        Cancel
                     </button>
 
                     <button
@@ -115,7 +115,7 @@ export function StatusConfirmModal({ driver, onClose, onConfirmed }) {
                         {saving && (
                             <LoaderCircle size={15} className="loading-spinner" />
                         )}
-                        {activating ? "Activer" : "Désactiver"}
+                        {activating ? "Activate" : "Deactivate"}
                     </button>
                 </>
             }
@@ -123,11 +123,11 @@ export function StatusConfirmModal({ driver, onClose, onConfirmed }) {
             <ModalError message={error} onClose={() => setError("")} />
 
             <p className="driver-confirm-text">
-                Voulez-vous vraiment {activating ? "activer" : "désactiver"} le
-                compte de <strong>{getFullName(driver)}</strong> ?{" "}
+                Are you sure you want to {activating ? "activate" : "désactivate"} le
+                account of <strong>{getFullName(driver)}</strong> ?{" "}
                 {activating
-                    ? "Le chauffeur pourra de nouveau se connecter."
-                    : "Le chauffeur ne pourra plus se connecter tant que son compte est inactif."}
+                    ? "The driver will be able to sign in again."
+                    : "The driver will not be able to sign in while the account is inactive."}
             </p>
         </ModalShell>
     );
@@ -146,11 +146,11 @@ export function DeleteDriverModal({ driver, onClose, onDone }) {
 
             await api.delete("/users/" + driver._id);
 
-            onDone("Chauffeur supprimé définitivement.");
+            onDone("Driver deleted successfully.");
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                "Impossible de supprimer le chauffeur. Vérifiez la connexion au serveur."
+                "Unable to delete the driver. Check your server connection."
             );
             setConflict(err.response?.status === 409);
             setSaving(false);
@@ -166,11 +166,11 @@ export function DeleteDriverModal({ driver, onClose, onDone }) {
                 isActive: false
             });
 
-            onDone("Chauffeur désactivé avec succès.");
+            onDone("Driver deactivated successfully.");
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                "Impossible de désactiver le chauffeur."
+                "Unable to deactivate the driver."
             );
             setSaving(false);
         }
@@ -178,8 +178,8 @@ export function DeleteDriverModal({ driver, onClose, onDone }) {
 
     return (
         <ModalShell
-            eyebrow="ACTION IRRÉVERSIBLE"
-            title="Supprimer le chauffeur"
+            eyebrow="IRREVERSIBLE ACTION"
+            title="Delete Driver"
             titleId="driver-delete-title"
             saving={saving}
             onClose={onClose}
@@ -191,7 +191,7 @@ export function DeleteDriverModal({ driver, onClose, onDone }) {
                         onClick={onClose}
                         disabled={saving}
                     >
-                        Annuler
+                        Cancel
                     </button>
 
                     {conflict && driver.isActive && (
@@ -201,7 +201,7 @@ export function DeleteDriverModal({ driver, onClose, onDone }) {
                             onClick={handleDeactivate}
                             disabled={saving}
                         >
-                            Désactiver à la place
+                            Deactivate à la place
                         </button>
                     )}
 
@@ -216,7 +216,7 @@ export function DeleteDriverModal({ driver, onClose, onDone }) {
                         ) : (
                             <Trash2 size={15} />
                         )}
-                        Supprimer
+                        Delete
                     </button>
                 </>
             }
@@ -224,21 +224,21 @@ export function DeleteDriverModal({ driver, onClose, onDone }) {
             <ModalError message={error} onClose={() => setError("")} />
 
             <p className="driver-confirm-text">
-                Êtes-vous sûr de vouloir supprimer définitivement ce chauffeur
-                de l'effectif régional ? Cette action est irréversible.
+                Are you sure you want to permanently delete this driver
+                from the regional workforce? This action cannot be undone.
             </p>
 
             <div className="driver-delete-card">
-                <span className="driver-delete-label">CHAUFFEUR</span>
+                <span className="driver-delete-label">DRIVER</span>
 
                 <div className="driver-identity">
                     <span className="driver-avatar">{getInitials(driver)}</span>
                     <div>
                         <strong>{getFullName(driver)}</strong>
                         <span className="driver-sub">
-                            CIN: {driver.cin || "—"} · Permis:{" "}
+                            CIN: {driver.cin || "—"} · Licence:{" "}
                             {driver.licenseCategory
-                                ? "Cat. " + driver.licenseCategory
+                                ? "Category " + driver.licenseCategory
                                 : "—"}
                         </span>
                     </div>

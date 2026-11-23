@@ -155,8 +155,8 @@ function Profile() {
 
     const regionName = profile.region
         ? `${profile.region.name || "Unknown region"}${
-            profile.region.governorate
-                ? ` - ${profile.region.governorate}`
+            profile.region.location
+                ? ` - ${profile.region.location}`
                 : ""
         }`
         : "Not assigned";
@@ -385,14 +385,16 @@ function Profile() {
                         </div>
                     </div>
 
-                    <div className="profile-field">
-                        <label>Assigned region</label>
+                    {profile.role !== "general_director" && (
+                        <div className="profile-field">
+                            <label>Assigned region</label>
 
-                        <div className="profile-readonly">
-                            <MapPin size={17} />
-                            <span>{regionName}</span>
+                            <div className="profile-readonly">
+                                <MapPin size={17} />
+                                <span>{regionName}</span>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div className="profile-field">
                         <label>Account status</label>

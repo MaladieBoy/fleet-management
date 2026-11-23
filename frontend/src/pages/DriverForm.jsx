@@ -46,25 +46,25 @@ function validate(form) {
     const errors = {};
 
     if (!form.firstName.trim()) {
-        errors.firstName = "Le prénom est obligatoire.";
+        errors.firstName = "First name is required.";
     }
 
     if (!form.lastName.trim()) {
-        errors.lastName = "Le nom est obligatoire.";
+        errors.lastName = "Last name is required.";
     }
 
     if (!form.email.trim()) {
-        errors.email = "L'adresse email est obligatoire.";
+        errors.email = "Email address is required.";
     } else if (!EMAIL_PATTERN.test(form.email.trim())) {
-        errors.email = "Adresse email invalide.";
+        errors.email = "Invalid email address.";
     }
 
     if (!/^\d{8}$/.test(form.cin.trim())) {
-        errors.cin = "Le CIN doit contenir exactement 8 chiffres.";
+        errors.cin = "National ID must contain exactly 8 digits.";
     }
 
     if (!PHONE_PATTERN.test(form.phoneNumber.trim())) {
-        errors.phoneNumber = "Numéro de téléphone invalide.";
+        errors.phoneNumber = "Invalid phone number.";
     }
 
     if (form.birthDate) {
@@ -73,37 +73,37 @@ function validate(form) {
         limit.setFullYear(limit.getFullYear() - 18);
 
         if (Number.isNaN(birth.getTime()) || birth.getFullYear() < 1900) {
-            errors.birthDate = "Date de naissance invalide.";
+            errors.birthDate = "Invalid date of birth.";
         } else if (birth > limit) {
-            errors.birthDate = "Le chauffeur doit avoir au moins 18 ans.";
+            errors.birthDate = "The driver must be at least 18 years old.";
         }
     }
 
     if (form.address.trim().length > 200) {
-        errors.address = "200 caractères maximum.";
+        errors.address = "Maximum 200 characters.";
     }
 
     if (!form.licenseCategory) {
-        errors.licenseCategory = "Sélectionnez une catégorie.";
+        errors.licenseCategory = "Select a licence category.";
     }
 
     const licenseNumber = form.licenseNumber.trim();
 
     if (licenseNumber.length < 3 || licenseNumber.length > 30) {
-        errors.licenseNumber = "Entre 3 et 30 caractères.";
+        errors.licenseNumber = "Between 3 and 30 characters.";
     }
 
     if (
         !form.licenseExpiry ||
         Number.isNaN(new Date(form.licenseExpiry).getTime())
     ) {
-        errors.licenseExpiry = "La date d'expiration est obligatoire.";
+        errors.licenseExpiry = "Licence expiry date is required.";
     }
 
     const hub = form.hub.trim();
 
     if (hub.length < 2 || hub.length > 80) {
-        errors.hub = "Indiquez le dépôt pivot (2 à 80 caractères).";
+        errors.hub = "Enter the depot name (2 to 80 characters).";
     }
 
     return errors;
@@ -139,8 +139,9 @@ function Field({ id, label, required, hint, error, full, children }) {
     );
 }
 
-function DriverForm() {
-    const { id } = useParams();
+function DriverForm({ driverId, onClose, onSaved }) {
+    const { id: routeId } = useParams();
+    const id = driverId ?? routeId;
     const isEdit = Boolean(id);
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -169,7 +170,7 @@ function DriverForm() {
                 const driver = list.find((item) => item._id === id);
 
                 if (!driver) {
-                    setLoadError("Chauffeur introuvable dans votre région.");
+                    setLoadError("Driver not found in your region.");
                     return;
                 }
 
@@ -193,7 +194,7 @@ function DriverForm() {
 
                 setLoadError(
                     err.response?.data?.message ||
-                    "Impossible de charger le chauffeur. Vérifiez la connexion au serveur."
+                    "Unable to load the driver. Check your server connection."
                 );
             } finally {
                 if (active) setLoading(false);
@@ -233,7 +234,7 @@ function DriverForm() {
         setFieldErrors(errors);
 
         if (Object.keys(errors).length > 0) {
-            setError("Veuillez corriger les champs indiqués.");
+            setError("Please correct the highlighted fields.");
             return;
         }
 
@@ -259,21 +260,20 @@ function DriverForm() {
                 await api.post("/users", { ...payload, isActive: wantsActive });
             }
 
-            navigate("/drivers", {
-                state: {
-                    notice: isEdit
-                        ? "Chauffeur modifié avec succès."
-                        : "Chauffeur créé avec succès."
-                }
-            });
+            const message = isEdit
+                ? "Driver updated successfully."
+                : "Driver created successfully.";
+
+            if (onSaved) onSaved(message);
+            else navigate("/drivers", { state: { notice: message } });
         } catch (err) {
             const message =
                 err.response?.data?.message ||
-                "Impossible d'enregistrer le chauffeur. Vérifiez la connexion au serveur.";
+                "Unable to save the driver. Check your server connection.";
 
             setError(
                 profileSaved
-                    ? "Profil enregistré, mais le statut n'a pas pu être modifié : " +
+                    ? "Profile saved, but the account status could not be updated: " +
                     message
                     : message
             );
@@ -282,7 +282,7 @@ function DriverForm() {
     }
 
     const previewName = (form.firstName + " " + form.lastName).trim();
-    const regionName = getRegionName(user?.region) || "Votre région";
+    const regionName = getRegionName(user?.region) || "Your region";
     const categoryLabel = LICENSE_CATEGORIES.find(
         (item) => item.value === form.licenseCategory
     );
@@ -291,14 +291,14 @@ function DriverForm() {
     const breadcrumb = (
         <div className="page-breadcrumb">
             <ContactRound size={15} />
-            <span>Flotte &amp; Personnel</span>
+            <span>Fleet &amp; Personnel</span>
             <span>/</span>
             <Link to="/drivers" className="breadcrumb-link">
-                Chauffeurs
+                Drivers
             </Link>
             <span>/</span>
             <span className="breadcrumb-current">
-                {isEdit ? "Modifier le chauffeur" : "Nouveau chauffeur"}
+                {isEdit ? "Edit Driver" : "New Driver"}
             </span>
         </div>
     );
@@ -309,7 +309,7 @@ function DriverForm() {
                 {breadcrumb}
                 <div className="page-loading">
                     <LoaderCircle size={20} className="loading-spinner" />
-                    Chargement du chauffeur...
+                    Loading driver...
                 </div>
             </section>
         );
@@ -325,29 +325,37 @@ function DriverForm() {
                 <button
                     type="button"
                     className="button-secondary"
-                    onClick={() => navigate("/drivers")}
+                    onClick={() => (onClose ? onClose() : navigate("/drivers"))}
                 >
-                    Retour à la liste
+                    Back to Driver List
                 </button>
             </section>
         );
     }
 
     return (
-        <section className="page-view">
+        <section className="page-view driver-form-page-modal">
+            <button
+                type="button"
+                className="vehicle-form-modal-close icon-button"
+                onClick={() => (onClose ? onClose() : navigate("/drivers"))}
+                aria-label="Close form"
+            >
+                <X size={20} />
+            </button>
             {breadcrumb}
 
             <div className="page-heading">
                 <div>
                     <div className="page-eyebrow">
                         <span className="eyebrow-dot" />
-                        {isEdit ? "DOSSIER CHAUFFEUR" : "NOUVEAU DOSSIER"}
+                        {isEdit ? "DRIVER PROFILE" : "NEW DRIVER"}
                     </div>
-                    <h1>{isEdit ? "Modifier le Chauffeur" : "Ajouter un Chauffeur"}</h1>
+                    <h1>{isEdit ? "Edit Driver" : "Add Driver"}</h1>
                     <p>
                         {isEdit
-                            ? "Mise à jour des informations administratives, permis et dépôt de rattachement."
-                            : "Formulaire d'enregistrement et d'affectation d'un conducteur au pôle régional."}
+                            ? "Update the driver's personal information, licence details, and assigned depot."
+                            : "Register a driver and assign them to the regional hub."}
                     </p>
                 </div>
             </div>
@@ -358,13 +366,13 @@ function DriverForm() {
 
                     <div className="driver-summary-body">
                         <span className="driver-summary-eyebrow">
-                            PERMIS DE CONDUIRE TUNISIEN
+                            TUNISIAN DRIVING LICENCE
                         </span>
                         <h2>{getFullName(original)}</h2>
                         <p>
-                            CIN: <span>{original.cin || "—"}</span> | Permis:{" "}
-                            <span>{original.licenseCategory || "—"}</span> | Dépôt:{" "}
-                            <span>{original.hub || "—"}</span> | Créé le{" "}
+                            CIN: <span>{original.cin || "—"}</span> | Licence:{" "}
+                            <span>{original.licenseCategory || "—"}</span> | Depot:{" "}
+                            <span>{original.hub || "—"}</span> | Created on{" "}
                             <span>{formatDate(original.createdAt)}</span>
                         </p>
                     </div>
@@ -376,7 +384,7 @@ function DriverForm() {
                         }
                     >
                         <span />
-                        {original.isActive ? "Actif" : "Inactif"}
+                        {original.isActive ? "Active" : "Inactive"}
                     </span>
                 </div>
             )}
@@ -393,7 +401,7 @@ function DriverForm() {
                             <button
                                 type="button"
                                 onClick={() => setError("")}
-                                aria-label="Fermer le message"
+                                aria-label="Close message"
                             >
                                 ×
                             </button>
@@ -403,55 +411,55 @@ function DriverForm() {
                     <div className="driver-card">
                         <h2 className="driver-card-title">
                             <UserRound size={18} />
-                            1. Informations Personnelles &amp; Identité
+                            1. Personal Information &amp; Identity
                         </h2>
 
                         <div className="driver-grid">
                             <Field
                                 id="driver-firstName"
-                                label="Prénom"
+                                label="First Name"
                                 required
                                 error={fieldErrors.firstName}
                             >
-                                <input {...inputProps("firstName")} placeholder="Ex: Mohamed" />
+                                <input {...inputProps("firstName")} placeholder="e.g. Mohamed" />
                             </Field>
 
                             <Field
                                 id="driver-lastName"
-                                label="Nom de famille"
+                                label="Last Name"
                                 required
                                 error={fieldErrors.lastName}
                             >
-                                <input {...inputProps("lastName")} placeholder="Ex: Ben Salem" />
+                                <input {...inputProps("lastName")} placeholder="e.g. Ben Salem" />
                             </Field>
 
                             <Field
                                 id="driver-email"
-                                label="Adresse email (compte Google)"
+                                label="Email Address (Google Account)"
                                 required
                                 full
-                                hint="Le chauffeur se connectera avec le compte Google correspondant."
+                                hint="The driver will sign in using this Google account."
                                 error={fieldErrors.email}
                             >
                                 <input
                                     {...inputProps("email")}
                                     type="email"
-                                    placeholder="chauffeur@example.com"
+                                    placeholder="driver@example.com"
                                 />
                             </Field>
 
                             <Field
                                 id="driver-cin"
-                                label="Numéro CIN (carte d'identité)"
+                                label="National ID Number"
                                 required
-                                hint="Identifiant national à 8 chiffres"
+                                hint="8-digit national identification number"
                                 error={fieldErrors.cin}
                             >
                                 <input
                                     {...inputProps("cin")}
                                     inputMode="numeric"
                                     maxLength={8}
-                                    placeholder="Ex: 08492147"
+                                    placeholder="e.g. 08492147"
                                 />
                             </Field>
 
@@ -465,7 +473,7 @@ function DriverForm() {
 
                             <Field
                                 id="driver-phoneNumber"
-                                label="Numéro de téléphone"
+                                label="Phone Number"
                                 required
                                 error={fieldErrors.phoneNumber}
                             >
@@ -478,12 +486,12 @@ function DriverForm() {
 
                             <Field
                                 id="driver-address"
-                                label="Adresse de résidence"
+                                label="Home Address"
                                 error={fieldErrors.address}
                             >
                                 <input
                                     {...inputProps("address")}
-                                    placeholder="Ex: Nouvelle Medina, Ben Arous"
+                                    placeholder="e.g. Nouvelle Medina, Ben Arous"
                                 />
                             </Field>
                         </div>
@@ -492,18 +500,18 @@ function DriverForm() {
                     <div className="driver-card">
                         <h2 className="driver-card-title">
                             <ShieldCheck size={18} />
-                            2. Qualification &amp; Affectation Régionale
+                            2. Licence &amp; Regional Assignment
                         </h2>
 
                         <div className="driver-grid">
                             <Field
                                 id="driver-licenseCategory"
-                                label="Catégorie de permis"
+                                label="Licence Category"
                                 required
                                 error={fieldErrors.licenseCategory}
                             >
                                 <select {...inputProps("licenseCategory")}>
-                                    <option value="">Sélectionner...</option>
+                                    <option value="">Select...</option>
                                     {LICENSE_CATEGORIES.map((item) => (
                                         <option key={item.value} value={item.value}>
                                             {item.label}
@@ -514,19 +522,19 @@ function DriverForm() {
 
                             <Field
                                 id="driver-licenseNumber"
-                                label="Numéro de permis de conduire"
+                                label="Driving Licence Number"
                                 required
                                 error={fieldErrors.licenseNumber}
                             >
                                 <input
                                     {...inputProps("licenseNumber")}
-                                    placeholder="Ex: 12/489201"
+                                    placeholder="e.g. 12/489201"
                                 />
                             </Field>
 
                             <Field
                                 id="driver-licenseExpiry"
-                                label="Date d'expiration du permis"
+                                label="Licence Expiry Date"
                                 required
                                 error={fieldErrors.licenseExpiry}
                             >
@@ -535,8 +543,8 @@ function DriverForm() {
 
                             <Field
                                 id="driver-region"
-                                label="Région de rattachement"
-                                hint="Attribuée automatiquement (votre région)."
+                                label="Assigned Region"
+                                hint="Automatically assigned (your region)."
                             >
                                 <input
                                     id="driver-region"
@@ -548,14 +556,14 @@ function DriverForm() {
 
                             <Field
                                 id="driver-hub"
-                                label="Dépôt pivot"
+                                label="Main Depot / Hub"
                                 required
                                 error={fieldErrors.hub}
                             >
                                 <input
                                     {...inputProps("hub")}
                                     list="driver-hub-list"
-                                    placeholder="Ex: Radès Hub Principal"
+                                    placeholder="e.g. Radès Main Hub"
                                 />
                                 <datalist id="driver-hub-list">
                                     {HUB_SUGGESTIONS.map((hub) => (
@@ -566,11 +574,11 @@ function DriverForm() {
 
                             <Field
                                 id="driver-isActive"
-                                label={isEdit ? "Statut opérationnel" : "Statut initial"}
+                                label={isEdit ? "Account Status" : "Initial Status"}
                             >
                                 <select {...inputProps("isActive")}>
-                                    <option value="true">Disponible (Actif)</option>
-                                    <option value="false">Suspendu / Inactif</option>
+                                    <option value="true">Available (Active)</option>
+                                    <option value="false">Suspendu / Inactive</option>
                                 </select>
                             </Field>
                         </div>
@@ -581,14 +589,11 @@ function DriverForm() {
                         <div>
                             <strong>
                                 {isEdit
-                                    ? "Attribution Dynamique de Véhicule"
-                                    : "Règle Opérationnelle d'Attribution"}
+                                    ? "Dynamic Vehicle Assignment"
+                                    : "Vehicle Assignment Policy"}
                             </strong>
                             <p>
-                                L'assignation du véhicule s'effectue dynamiquement au
-                                démarrage de chaque mission. L'enregistrement initial
-                                confère uniquement les habilitations et droits d'accès
-                                au parc régional.
+                                Vehicle assignment is handled dynamically when each mission starts. Initial registration only grants the driver access permissions for the regional fleet.
                             </p>
                         </div>
                     </div>
@@ -602,7 +607,7 @@ function DriverForm() {
                                 disabled={saving}
                             >
                                 <Trash2 size={15} />
-                                Retirer / Supprimer le chauffeur
+                                Remove / Delete Driver
                             </button>
                         ) : (
                             <span />
@@ -612,11 +617,11 @@ function DriverForm() {
                             <button
                                 type="button"
                                 className="button-secondary"
-                                onClick={() => navigate("/drivers")}
+                                onClick={() => (onClose ? onClose() : navigate("/drivers"))}
                                 disabled={saving}
                             >
                                 <X size={15} />
-                                Annuler
+                                Cancel
                             </button>
 
                             <button
@@ -630,8 +635,8 @@ function DriverForm() {
                                     <Check size={15} />
                                 )}
                                 {isEdit
-                                    ? "Enregistrer les modifications"
-                                    : "Enregistrer le Chauffeur"}
+                                    ? "Save Changes"
+                                    : "Save Driver"}
                             </button>
                         </div>
                     </div>
@@ -640,13 +645,13 @@ function DriverForm() {
                 {!isEdit && (
                     <aside className="driver-aside">
                         <span className="driver-aside-label">
-                            APERÇU DE LA CARTE PROFESSIONNELLE
+                            DRIVER ID CARD PREVIEW
                         </span>
 
                         <div className="driver-pass">
                             <div className="driver-pass-top">
-                                <span>RÉPUBLIQUE TUNISIENNE</span>
-                                <span className="mono-tag">PERMIS DE CONDUIRE</span>
+                                <span>REPUBLIC OF TUNISIA</span>
+                                <span className="mono-tag">DRIVING LICENCE</span>
                             </div>
 
                             <div className="driver-pass-id">
@@ -654,7 +659,7 @@ function DriverForm() {
                                     {getInitials(form)}
                                 </div>
                                 <div>
-                                    <strong>{previewName || "Nouveau chauffeur"}</strong>
+                                    <strong>{previewName || "New Driver"}</strong>
                                     <span>CIN: {form.cin || "—"}</span>
                                     <span
                                         className={
@@ -663,30 +668,30 @@ function DriverForm() {
                                         }
                                     >
                                         <span />
-                                        {formActive ? "Disponible" : "Inactif"}
+                                        {formActive ? "Available" : "Inactive"}
                                     </span>
                                 </div>
                             </div>
 
                             <dl className="driver-pass-data">
                                 <div>
-                                    <dt>Catégorie</dt>
+                                    <dt>Category</dt>
                                     <dd>
                                         {categoryLabel
-                                            ? "Permis " + categoryLabel.value
+                                            ? "Licence " + categoryLabel.value
                                             : "—"}
                                     </dd>
                                 </div>
                                 <div>
-                                    <dt>N° permis</dt>
+                                    <dt>Licence No.</dt>
                                     <dd>{form.licenseNumber || "—"}</dd>
                                 </div>
                                 <div>
-                                    <dt>Pôle régional</dt>
+                                    <dt>Regional Hub</dt>
                                     <dd>{regionName}</dd>
                                 </div>
                                 <div>
-                                    <dt>Hub pivot</dt>
+                                    <dt>Main Hub</dt>
                                     <dd>{form.hub || "—"}</dd>
                                 </div>
                             </dl>
@@ -695,12 +700,10 @@ function DriverForm() {
                         <div className="driver-compliance">
                             <h3>
                                 <ShieldCheck size={16} />
-                                Contrôle de Conformité
+                                Compliance Check
                             </h3>
                             <p>
-                                Assurez-vous que le conducteur possède une visite
-                                médicale valide pour la catégorie poids lourd avant
-                                d'effectuer toute mission inter-gouvernorats.
+                                Ensure the driver has a valid medical examination for the heavy-vehicle licence category before undertaking any inter-governorate mission.
                             </p>
                         </div>
                     </aside>
@@ -711,9 +714,10 @@ function DriverForm() {
                 <DeleteDriverModal
                     driver={original}
                     onClose={() => setDeleting(false)}
-                    onDone={(message) =>
-                        navigate("/drivers", { state: { notice: message } })
-                    }
+                    onDone={(message) => {
+                        if (onSaved) onSaved(message);
+                        else navigate("/drivers", { state: { notice: message } });
+                    }}
                 />
             )}
         </section>

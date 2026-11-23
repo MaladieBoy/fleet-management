@@ -22,7 +22,6 @@ async function googleLogin(req, res) {
         const payload = ticket.getPayload();
         const normalizedEmail = String(payload.email || "").trim().toLowerCase();
 
-        console.log("Google login email received:", normalizedEmail);
 
         if (!payload.email_verified) {
             return res.status(401).json({
@@ -106,7 +105,7 @@ async function getCurrentUser(req, res) {
 async function getProfile(req, res) {
     try {
         const user = await User.findById(req.user._id)
-            .populate("region", "name governorate")
+            .populate("region", "name location regionId status address createdAt")
             .populate("createdBy", "firstName lastName email");
 
         if (!user) {
@@ -170,7 +169,7 @@ async function updateProfile(req, res) {
         await user.save();
 
         const updatedUser = await User.findById(user._id)
-            .populate("region", "name governorate")
+            .populate("region", "name location regionId status address createdAt")
             .populate("createdBy", "firstName lastName email");
 
         return res.json({

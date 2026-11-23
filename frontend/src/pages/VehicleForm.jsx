@@ -27,11 +27,11 @@ const emptyForm = {
 };
 
 const statuses = [
-    { value: "available", label: "Disponible" },
-    { value: "on_mission", label: "En mission" },
-    { value: "at_parking", label: "Au parking" },
-    { value: "under_maintenance", label: "En maintenance" },
-    { value: "out_of_service", label: "Hors service" }
+    { value: "available", label: "Available" },
+    { value: "on_mission", label: "On Mission" },
+    { value: "at_parking", label: "Parked" },
+    { value: "under_maintenance", label: "Under Maintenance" },
+    { value: "out_of_service", label: "Out of Service" }
 ];
 
 function splitRegistration(value = "") {
@@ -44,9 +44,10 @@ function splitRegistration(value = "") {
     return { series: "", number: value };
 }
 
-function VehicleForm() {
+function VehicleForm({ vehicleId, onClose, onSaved }) {
     const navigate = useNavigate();
-    const { id } = useParams();
+    const { id: routeId } = useParams();
+    const id = vehicleId ?? routeId;
     const editing = Boolean(id);
 
     const [form, setForm] = useState(emptyForm);
@@ -69,7 +70,7 @@ function VehicleForm() {
                     }))
                     .catch(() => ({
                         regions: [],
-                        error: "Impossible de charger les régions."
+                        error: "Unable to load regions."
                     }));
 
                 const vehiclePromise = editing
@@ -117,7 +118,7 @@ function VehicleForm() {
                 if (active) {
                     setError(
                         err.response?.data?.message ||
-                        "Impossible de charger les informations du véhicule."
+                        "Unable to load vehicle information."
                     );
                 }
             } finally {
@@ -157,22 +158,22 @@ function VehicleForm() {
         setSuccess("");
 
         if (!form.series.trim() && !form.number.trim()) {
-            setError("Le numéro d'immatriculation est obligatoire.");
+            setError("Vehicle registration number is required.");
             return;
         }
 
         if (form.series.trim() && !/^\d{1,3}$/.test(form.series.trim())) {
-            setError("La série doit contenir entre 1 et 3 chiffres.");
+            setError("The series must contain between 1 and 3 digits.");
             return;
         }
 
         if (!form.brand.trim() || !form.model.trim() || !form.type.trim()) {
-            setError("Veuillez renseigner la marque, le modèle et le type.");
+            setError("Please enter the vehicle make, model, and type.");
             return;
         }
 
         if (!form.region) {
-            setError("Veuillez sélectionner une région.");
+            setError("Please select a region.");
             return;
         }
 
@@ -186,7 +187,7 @@ function VehicleForm() {
             !Number.isFinite(capacity) || capacity < 0 ||
             !Number.isFinite(fuelLevel) || fuelLevel < 0
         ) {
-            setError("Les valeurs numériques doivent être positives ou nulles.");
+            setError("Numeric values must be zero or greater.");
             return;
         }
 
@@ -194,17 +195,17 @@ function VehicleForm() {
             form.fuelType !== "Electric" &&
             capacity <= 0
         ) {
-            setError("Un véhicule Diesel ou Petrol doit avoir une capacité de réservoir positive.");
+            setError("A Diesel or Petrol vehicle must have a positive fuel tank capacity.");
             return;
         }
 
         if (fuelLevel > capacity) {
-            setError("Le niveau de carburant ne peut pas dépasser la capacité du réservoir.");
+            setError("Fuel level cannot exceed tank capacity.");
             return;
         }
 
         if (form.fuelType === "Electric" && (capacity !== 0 || fuelLevel !== 0)) {
-            setError("Un véhicule électrique doit avoir une capacité et un niveau de carburant à zéro.");
+            setError("An electric vehicle must have zero fuel tank capacity and fuel level.");
             return;
         }
 
@@ -212,7 +213,7 @@ function VehicleForm() {
             year !== undefined &&
             (!Number.isInteger(year) || year < 1900 || year > new Date().getFullYear())
         ) {
-            setError("L'année de mise en circulation est invalide.");
+            setError("The vehicle year is invalid.");
             return;
         }
 
@@ -246,18 +247,19 @@ function VehicleForm() {
                 if (form.status !== originalStatus) {
                     await api.patch(`/vehicles/${id}/status`, {
                         status: form.status,
-                        note: "Statut modifié depuis le formulaire véhicule"
+                        note: "Status updated from the vehicle form"
                     });
                 }
             }
 
-            setSuccess("Véhicule enregistré avec succès.");
+            setSuccess("Vehicle saved successfully.");
 
-            navigate("/vehicles");
+            if (onSaved) onSaved();
+            else navigate("/vehicles");
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                "Une erreur est survenue pendant l'enregistrement."
+                "An error occurred while saving the vehicle."
             );
         } finally {
             setSaving(false);
@@ -270,11 +272,12 @@ function VehicleForm() {
 
         try {
             await api.delete(`/vehicles/${id}`);
-            navigate("/vehicles");
+            if (onSaved) onSaved();
+            else navigate("/vehicles");
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                "Impossible de supprimer ce véhicule."
+                "Unable to delete this vehicle."
             );
             setDeleteModal(false);
         } finally {
@@ -284,22 +287,33 @@ function VehicleForm() {
 
     if (loading) {
         return (
-            <div className="form-loading">
+            <div className="vehicle-form-loading-modal">
+                <div className="form-loading">
                 <LoaderCircle size={25} />
-                Chargement du véhicule...
+                    Loading vehicle...
+                </div>
             </div>
         );
     }
 
     return (
-        <section className="page-view">
+        <section className="page-view vehicle-form-page-modal">
+            <button
+                type="button"
+                className="vehicle-form-modal-close icon-button"
+                onClick={() => (onClose ? onClose() : navigate("/vehicles"))}
+                aria-label="Close form"
+            >
+                <X size={20} />
+            </button>
+
             <div className="page-breadcrumb">
-                <span>Fleet & Parc</span>
+                <span>Fleet & Operations</span>
                 <ChevronRight size={14} />
-                <span onClick={() => navigate("/vehicles")}>Véhicules</span>
+                <span onClick={() => (onClose ? onClose() : navigate("/vehicles"))}>Vehicles</span>
                 <ChevronRight size={14} />
                 <span className="breadcrumb-current">
-                    {editing ? "Modifier le véhicule" : "Nouveau véhicule"}
+                    {editing ? "Edit Vehicle" : "New Vehicle"}
                 </span>
             </div>
 
@@ -307,17 +321,17 @@ function VehicleForm() {
                 <div>
                     <div className="page-eyebrow">
                         <span className="eyebrow-dot" />
-                        NŒUD RÉGIONAL TN-01
+                        REGIONAL NODE TN-01
                         <span className="eyebrow-separator">/</span>
-                        GESTION DU PARC ROULANT
+                        FLEET MANAGEMENT
                     </div>
 
-                    <h1>{editing ? "Modifier le véhicule" : "Ajouter un véhicule"}</h1>
+                    <h1>{editing ? "Edit Vehicle" : "Add Vehicle"}</h1>
 
                     <p>
                         {editing
-                            ? "Modifier les informations techniques et le suivi kilométrique du véhicule."
-                            : "Saisir les informations d'enregistrement et d'affectation du véhicule au parc."}
+                            ? "Update the vehicle's technical details and mileage records."
+                            : "Enter the vehicle's registration and fleet assignment details."}
                     </p>
                 </div>
             </div>
@@ -335,9 +349,9 @@ function VehicleForm() {
                         <div>
                             <div className="plate-title">
                                 <CarFront size={19} />
-                                Aperçu Plaque d'Immatriculation
+                                Registration Plate Preview
                             </div>
-                            <p>Format réglementaire standard (Série TN Numéro)</p>
+                            <p>Standard registration format (TN Series / Number)</p>
                         </div>
 
                         <div className="registration-plate">
@@ -348,41 +362,41 @@ function VehicleForm() {
                     </div>
 
                     <div className="vehicle-form-section">
-                        <h2><span />1. Informations Générales</h2>
+                        <h2><span />1. General Information</h2>
 
                         <div className="vehicle-form-grid">
                             <div className="form-field">
-                                <label htmlFor="series">SÉRIE (TN) *</label>
+                                <label htmlFor="series">SERIES (TN) *</label>
                                 <input
                                     id="series"
                                     name="series"
                                     type="text"
                                     inputMode="numeric"
                                     maxLength="3"
-                                    placeholder="Ex : 214"
+                                    placeholder="e.g. 214"
                                     value={form.series}
                                     onChange={updateField}
                                 />
                             </div>
 
                             <div className="form-field">
-                                <label htmlFor="number">NUMÉRO D'ORDRE *</label>
+                                <label htmlFor="number">SERIAL NUMBER *</label>
                                 <input
                                     id="number"
                                     name="number"
                                     type="text"
-                                    placeholder="Ex : 8942"
+                                    placeholder="e.g. 8942"
                                     value={form.number}
                                     onChange={updateField}
                                 />
                             </div>
 
                             <div className="form-field">
-                                <label htmlFor="brand">MARQUE / CONSTRUCTEUR *</label>
+                                <label htmlFor="brand">MAKE / MANUFACTURER *</label>
                                 <input
                                     id="brand"
                                     name="brand"
-                                    placeholder="Ex : Renault"
+                                    placeholder="e.g. Renault"
                                     value={form.brand}
                                     onChange={updateField}
                                     required
@@ -390,11 +404,11 @@ function VehicleForm() {
                             </div>
 
                             <div className="form-field">
-                                <label htmlFor="model">MODÈLE *</label>
+                                <label htmlFor="model">MODEL *</label>
                                 <input
                                     id="model"
                                     name="model"
-                                    placeholder="Ex : Master III"
+                                    placeholder="e.g. Master III"
                                     value={form.model}
                                     onChange={updateField}
                                     required
@@ -402,7 +416,7 @@ function VehicleForm() {
                             </div>
 
                             <div className="form-field">
-                                <label htmlFor="year">ANNÉE DE MISE EN CIRCULATION</label>
+                                <label htmlFor="year">YEAR OF REGISTRATION</label>
                                 <input
                                     id="year"
                                     name="year"
@@ -416,11 +430,11 @@ function VehicleForm() {
                             </div>
 
                             <div className="form-field">
-                                <label htmlFor="type">TYPE DE CARROSSERIE *</label>
+                                <label htmlFor="type">BODY TYPE *</label>
                                 <input
                                     id="type"
                                     name="type"
-                                    placeholder="Ex : Utilitaire / Pick-up"
+                                    placeholder="e.g. Van / Pick-up"
                                     value={form.type}
                                     onChange={updateField}
                                     required
@@ -430,11 +444,11 @@ function VehicleForm() {
                     </div>
 
                     <div className="vehicle-form-section">
-                        <h2><span />2. Exploitation & Suivi</h2>
+                        <h2><span />2. Operations & Tracking</h2>
 
                         <div className="vehicle-form-grid">
                             <div className="form-field">
-                                <label htmlFor="region">RÉGION DE RATTACHEMENT *</label>
+                                <label htmlFor="region">ASSIGNED REGION *</label>
                                 <select
                                     id="region"
                                     name="region"
@@ -442,20 +456,20 @@ function VehicleForm() {
                                     onChange={updateField}
                                     required
                                 >
-                                    <option value="">Sélectionner une région</option>
+                                    <option value="">Select a region</option>
                                     {regions.map(region => (
                                         <option key={region._id} value={region._id}>
-                                            {region.name} — {region.governorate}
+                                            {region.name} — {region.location}
                                         </option>
                                     ))}
                                 </select>
                                 {regions.length === 0 && (
-                                    <small>Aucune région disponible. Vérifiez le module Régions.</small>
+                                    <small>No regions available. Check the Region Management module.</small>
                                 )}
                             </div>
 
                             <div className="form-field">
-                                <label htmlFor="mileage">COMPTEUR KILOMÉTRIQUE ACTUEL *</label>
+                                <label htmlFor="mileage">CURRENT ODOMETER *</label>
                                 <div className="input-with-suffix">
                                     <input
                                         id="mileage"
@@ -471,21 +485,21 @@ function VehicleForm() {
                             </div>
 
                             <div className="form-field">
-                                <label htmlFor="fuelType">TYPE DE CARBURANT *</label>
+                                <label htmlFor="fuelType">FUEL TYPE *</label>
                                 <select
                                     id="fuelType"
                                     name="fuelType"
                                     value={form.fuelType}
                                     onChange={updateField}
                                 >
-                                    <option value="Diesel">Gasoil / Diesel</option>
-                                    <option value="Petrol">Essence</option>
-                                    <option value="Electric">Électrique</option>
+                                    <option value="Diesel">Diesel</option>
+                                    <option value="Petrol">Petrol</option>
+                                    <option value="Electric">Electric</option>
                                 </select>
                             </div>
 
                             <div className="form-field">
-                                <label htmlFor="fuelTankCapacity">CAPACITÉ DU RÉSERVOIR (L) *</label>
+                                <label htmlFor="fuelTankCapacity">FUEL TANK CAPACITY (L) *</label>
                                 <input
                                     id="fuelTankCapacity"
                                     name="fuelTankCapacity"
@@ -500,7 +514,7 @@ function VehicleForm() {
                             </div>
 
                             <div className="form-field">
-                                <label htmlFor="currentFuelLevel">NIVEAU ACTUEL DE CARBURANT (L) *</label>
+                                <label htmlFor="currentFuelLevel">CURRENT FUEL LEVEL (L) *</label>
                                 <input
                                     id="currentFuelLevel"
                                     name="currentFuelLevel"
@@ -515,7 +529,7 @@ function VehicleForm() {
                             </div>
 
                             <div className="form-field form-field-full">
-                                <label htmlFor="status">STATUT OPÉRATIONNEL</label>
+                                <label htmlFor="status">OPERATIONAL STATUS</label>
                                 <select
                                     id="status"
                                     name="status"
@@ -547,7 +561,7 @@ function VehicleForm() {
                             onClick={() => setDeleteModal(true)}
                         >
                             <Trash2 size={15} />
-                            Supprimer le véhicule
+                            Delete Vehicle
                         </button>
                     ) : <span />}
 
@@ -555,10 +569,10 @@ function VehicleForm() {
                         <button
                             type="button"
                             className="button-secondary"
-                            onClick={() => navigate("/vehicles")}
+                            onClick={() => (onClose ? onClose() : navigate("/vehicles"))}
                         >
                             <X size={16} />
-                            Annuler
+                            Cancel
                         </button>
 
                         <button
@@ -569,7 +583,7 @@ function VehicleForm() {
                             {saving
                                 ? <LoaderCircle size={16} className="loading-spinner" />
                                 : <BadgeCheck size={17} />}
-                            {editing ? "Enregistrer les modifications" : "Enregistrer le véhicule"}
+                            {editing ? "Save Changes" : "Save Vehicle"}
                         </button>
                     </div>
                 </div>
@@ -587,12 +601,12 @@ function VehicleForm() {
                         <div className="delete-modal-icon">
                             <Trash2 size={23} />
                         </div>
-                        <h2>Supprimer ce véhicule ?</h2>
+                        <h2>Delete this vehicle?</h2>
                         <p>
-                            Vous êtes sur le point de supprimer
+                            You are about to delete
                             <strong> {registrationNumber}</strong>.
-                            Cette action est définitive. Le backend peut refuser
-                            la suppression si des enregistrements sont liés.
+                            This action is permanent. The backend may reject
+                            deletion if related records exist.
                         </p>
 
                         <div className="vehicle-modal-footer">
@@ -601,7 +615,7 @@ function VehicleForm() {
                                 className="button-secondary"
                                 onClick={() => setDeleteModal(false)}
                             >
-                                Annuler
+                                Cancel
                             </button>
                             <button
                                 type="button"
@@ -610,7 +624,7 @@ function VehicleForm() {
                                 disabled={saving}
                             >
                                 <Trash2 size={15} />
-                                Confirmer la suppression
+                                Confirm Deletion
                             </button>
                         </div>
                     </div>
